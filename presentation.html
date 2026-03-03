@@ -62,7 +62,7 @@
         <h2><span class="paper-badge ies">IES</span> Motivation</h2>
         <div class="content">
           <p class="citation">Yuan, Lin, Feng, Han, Liu &mdash; "Instance-Dependent Early Stopping" (ICLR 2025)</p>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start;">
+          <div style="display: grid; grid-template-columns: 0.85fr 1.15fr; gap: 30px; align-items: start;">
             <div>
               <ul>
                 <li>Instances are learned at <strong>different speeds</strong> during training</li>
@@ -74,7 +74,7 @@
               </div>
             </div>
             <div style="text-align: center;">
-              <img src="images/ies-fig1.png" alt="IES Figure 1" style="max-height: 320px; border-radius: var(--box-radius);">
+              <img src="images/ies-fig1.png" alt="IES Figure 1" style="max-height: 500px; border-radius: var(--box-radius);">
               <p class="fig-caption">Fig 1: Accuracy maintained while excluded samples grow over epochs</p>
             </div>
           </div>
@@ -107,7 +107,7 @@
               </p>
             </div>
             <div style="text-align: center;">
-              <img src="images/ies-fig3.png" alt="IES Figure 3" style="max-height: 340px; border-radius: var(--box-radius);">
+              <img src="images/ies-fig3.png" alt="IES Figure 3" style="max-height: 500px; border-radius: var(--box-radius);">
               <p class="fig-caption">Fig 3: CV of loss differences by order &mdash; 2nd order has lowest CV</p>
             </div>
           </div>
@@ -140,7 +140,7 @@
                 </div>
               </div>
               <div style="text-align: center;">
-                <img src="images/ies-algo1.png" alt="Algorithm 1" style="max-height: 380px; border-radius: var(--box-radius);">
+                <img src="images/ies-algo1.png" alt="Algorithm 1" style="max-height: 480px; border-radius: var(--box-radius);">
                 <p class="fig-caption">Algorithm 1: Instance-dependent Early Stopping</p>
               </div>
             </div>
@@ -165,7 +165,7 @@
               <li><strong>Flatter minima</strong> &mdash; lower SAM values and Hessian eigenvalues &rarr; better generalization</li>
             </ul>
             <div style="text-align: center; margin-top: 15px;">
-              <img src="images/ies-fig4.png" alt="IES Figure 4" style="max-height: 280px; border-radius: var(--box-radius);">
+              <img src="images/ies-fig4.png" alt="IES Figure 4" style="max-height: 500px; border-radius: var(--box-radius);">
               <p class="fig-caption">Fig 4: Test error, gradient norm, SAM value, and Hessian eigenvalue &mdash; IES (orange) vs baseline (blue)</p>
             </div>
           </div>
@@ -256,7 +256,7 @@
         <h2><span class="paper-badge grades">GradES</span> Motivation</h2>
         <div class="content">
           <p class="citation">Wen, Zeng, Zhou, Liu, Hosseinzadeh, Su, Rawassizadeh &mdash; "GradES: Significantly Faster Training in Transformers with Gradient-Based Early Stopping" (2025)</p>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start;">
+          <div style="display: grid; grid-template-columns: 0.85fr 1.15fr; gap: 30px; align-items: start;">
             <div>
               <p><strong>Transition:</strong> IES = data-level granularity. GradES = <strong>model-level</strong> granularity.</p>
               <ul>
@@ -269,7 +269,7 @@
               </div>
             </div>
             <div style="text-align: center;">
-              <img src="images/grades-fig1.png" alt="GradES Figure 1" style="max-height: 310px; border-radius: var(--box-radius);">
+              <img src="images/grades-fig1.png" alt="GradES Figure 1" style="max-height: 500px; border-radius: var(--box-radius);">
               <p class="fig-caption">Fig 1: L1 norms of gradient changes per component in Qwen3-0.6B layer 7 &mdash; vastly different convergence rates</p>
             </div>
           </div>
@@ -301,7 +301,7 @@
               </ul>
             </div>
             <div style="text-align: center;">
-              <img src="images/grades-fig2.png" alt="GradES Figure 2" style="max-height: 300px; border-radius: var(--box-radius);">
+              <img src="images/grades-fig2.png" alt="GradES Figure 2" style="max-height: 480px; border-radius: var(--box-radius);">
               <p class="fig-caption">Fig 2: GradES architecture &mdash; lock icons show frozen components</p>
             </div>
           </div>
