@@ -1,0 +1,836 @@
+<!doctype html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+	<title>Fine-Grained Early Stopping in Deep Learning</title>
+
+	<link rel="stylesheet" href="dist/reset.css">
+	<link rel="stylesheet" href="dist/reveal.css">
+	<link rel="stylesheet" href="dist/theme/white.css" id="theme">
+
+	<style>
+		:root {
+			--ies-color: #2563eb;
+			--grades-color: #7c3aed;
+			--ies-bg: #eff6ff;
+			--grades-bg: #f5f3ff;
+		}
+
+		.reveal {
+			font-size: 32px;
+		}
+
+		.reveal .slides {
+			text-align: left;
+		}
+
+		.reveal .slides section.center-slide {
+			text-align: center;
+		}
+
+		.reveal h1, .reveal h2, .reveal h3 {
+			text-transform: none;
+			text-align: center;
+		}
+
+		.reveal h1 { font-size: 1.8em; }
+		.reveal h2 { font-size: 1.4em; }
+		.reveal h3 { font-size: 1.15em; }
+
+		/* Paper badges */
+		.paper-badge {
+			display: inline-block;
+			padding: 0.15em 0.5em;
+			border-radius: 0.3em;
+			font-size: 0.7em;
+			font-weight: 600;
+			color: white;
+			vertical-align: middle;
+			margin-right: 0.3em;
+		}
+		.paper-badge.ies { background: var(--ies-color); }
+		.paper-badge.grades { background: var(--grades-color); }
+
+		/* Formula box */
+		.formula-box {
+			background: var(--ies-bg);
+			border-left: 4px solid var(--ies-color);
+			padding: 0.5em 1em;
+			margin: 0.5em 0;
+			border-radius: 0 0.3em 0.3em 0;
+		}
+		.formula-box.grades-formula {
+			background: var(--grades-bg);
+			border-left-color: var(--grades-color);
+		}
+
+		/* Result highlight */
+		.result-highlight {
+			background: #ecfdf5;
+			border-left: 4px solid #10b981;
+			padding: 0.4em 0.8em;
+			margin: 0.4em 0;
+			border-radius: 0 0.3em 0.3em 0;
+			font-weight: 500;
+		}
+
+		/* Comparison table */
+		.comparison {
+			width: 100%;
+			border-collapse: collapse;
+			font-size: 0.65em;
+			margin: 0.5em 0;
+		}
+		.comparison th {
+			background: #1e293b;
+			color: white;
+			padding: 0.5em 0.7em;
+			text-align: left;
+			font-weight: 600;
+		}
+		.comparison td {
+			padding: 0.4em 0.7em;
+			border-bottom: 1px solid #e2e8f0;
+		}
+		.comparison tr:nth-child(even) td {
+			background: #f8fafc;
+		}
+		.comparison tr:hover td {
+			background: #e2e8f0;
+		}
+
+		/* Results table */
+		.results-table {
+			width: 100%;
+			border-collapse: collapse;
+			font-size: 0.6em;
+			margin: 0.3em 0;
+		}
+		.results-table th {
+			background: #1e293b;
+			color: white;
+			padding: 0.4em 0.6em;
+			text-align: center;
+			font-weight: 600;
+		}
+		.results-table td {
+			padding: 0.35em 0.6em;
+			border-bottom: 1px solid #e2e8f0;
+			text-align: center;
+		}
+		.results-table tr:nth-child(even) td {
+			background: #f8fafc;
+		}
+		.results-table .highlight-cell {
+			background: #dcfce7 !important;
+			font-weight: 600;
+		}
+
+		/* Assessment cards */
+		.assessment-card {
+			background: #f0fdf4;
+			border-left: 4px solid #22c55e;
+			padding: 0.5em 0.8em;
+			margin: 0.3em 0;
+			border-radius: 0 0.3em 0.3em 0;
+			font-size: 0.75em;
+		}
+		.assessment-card.limitation {
+			background: #fef2f2;
+			border-left-color: #ef4444;
+		}
+		.assessment-card h4 {
+			margin: 0 0 0.2em 0;
+			font-size: 1em;
+			text-align: left;
+		}
+		.assessment-card ul {
+			margin: 0;
+			padding-left: 1.2em;
+		}
+		.assessment-card li {
+			margin: 0.15em 0;
+		}
+
+		/* Figure caption */
+		.fig-caption {
+			font-size: 0.55em;
+			color: #64748b;
+			text-align: center;
+			margin-top: 0.2em;
+		}
+
+		/* Custom column layout */
+		.two-col {
+			display: flex;
+			gap: 1.5em;
+			align-items: flex-start;
+		}
+		.two-col > * {
+			flex: 1;
+		}
+		.two-col > .col-narrow {
+			flex: 0.8;
+		}
+		.two-col > .col-wide {
+			flex: 1.2;
+		}
+
+		/* Highlight box */
+		.highlight-box {
+			background: #fef3c7;
+			border: 2px solid #f59e0b;
+			padding: 0.5em 0.8em;
+			border-radius: 0.4em;
+			text-align: center;
+			margin-top: 0.5em;
+			font-weight: 500;
+			font-size: 0.85em;
+		}
+
+		/* Citation */
+		.citation {
+			font-size: 0.6em;
+			color: #64748b;
+			font-style: italic;
+			margin-bottom: 0.3em;
+		}
+
+		/* Roadmap */
+		.roadmap {
+			display: flex;
+			justify-content: center;
+			gap: 0.5em;
+			margin-top: 0.8em;
+			flex-wrap: wrap;
+		}
+		.roadmap-item {
+			padding: 0.4em 0.8em;
+			border-radius: 0.4em;
+			font-size: 0.7em;
+			font-weight: 500;
+			color: white;
+		}
+		.roadmap-item.problem { background: #475569; }
+		.roadmap-item.ies { background: var(--ies-color); }
+		.roadmap-item.grades { background: var(--grades-color); }
+		.roadmap-item.synth { background: #0891b2; }
+
+		/* Quote box */
+		.quote-box {
+			background: linear-gradient(135deg, var(--ies-bg), var(--grades-bg));
+			border: 2px solid #94a3b8;
+			padding: 0.6em 1em;
+			border-radius: 0.5em;
+			font-style: italic;
+			text-align: center;
+			margin-top: 0.5em;
+			font-size: 0.8em;
+		}
+
+		/* Smaller list text */
+		.small-list {
+			font-size: 0.75em;
+		}
+		.small-list li {
+			margin: 0.25em 0;
+		}
+
+		/* Step list for algorithm walkthrough */
+		.step-list {
+			counter-reset: step;
+			list-style: none;
+			padding-left: 0;
+			font-size: 0.7em;
+		}
+		.step-list li {
+			counter-increment: step;
+			margin: 0.3em 0;
+			padding-left: 2em;
+			position: relative;
+		}
+		.step-list li::before {
+			content: counter(step);
+			position: absolute;
+			left: 0;
+			width: 1.5em;
+			height: 1.5em;
+			background: var(--ies-color);
+			color: white;
+			border-radius: 50%;
+			text-align: center;
+			line-height: 1.5em;
+			font-weight: 700;
+			font-size: 0.9em;
+		}
+
+		/* Discussion list */
+		.discussion-list {
+			font-size: 0.75em;
+			list-style: none;
+			padding-left: 0;
+		}
+		.discussion-list li::before {
+			content: "?  ";
+			font-weight: 700;
+			color: var(--ies-color);
+		}
+
+		.reveal .slides section .fragment.visible {
+			opacity: 1;
+		}
+
+		/* Slide-specific image constraints */
+		.fig-container {
+			text-align: center;
+		}
+		.fig-container img {
+			max-height: 380px;
+			object-fit: contain;
+		}
+	</style>
+</head>
+<body>
+	<div class="reveal">
+		<div class="slides">
+
+			<!-- ============ SLIDE 1: Title & Roadmap ============ -->
+			<section class="center-slide">
+				<h1 style="font-size:1.5em; margin-bottom:0.1em;">Fine-Grained Early Stopping<br>in Deep Learning</h1>
+				<p style="font-size:0.85em; color:#475569; margin-top:0.1em;">From Samples to Transformer Components</p>
+				<p style="font-size:0.65em; color:#94a3b8; margin-top:1em;">
+					ML Seminar &bull; March 2026
+				</p>
+				<div class="fragment roadmap">
+					<span class="roadmap-item problem">1. Problem</span>
+					<span class="roadmap-item ies">2. IES (per-instance)</span>
+					<span class="roadmap-item grades">3. GradES (per-component)</span>
+					<span class="roadmap-item synth">4. Comparison &amp; Critique</span>
+				</div>
+				<aside class="notes">
+					Welcome. Today we look at two recent papers that challenge the coarseness of traditional early stopping.
+					Both ask: can we make finer-grained stopping decisions during training?
+					We'll cover the problem framing, then dive into each paper, and finish with a comparison and critique.
+					~30 minutes total, with time for discussion at the end.
+				</aside>
+			</section>
+
+			<!-- ============ SLIDE 2: Why Global ES Is Too Coarse ============ -->
+			<section>
+				<h2>Why Global Early Stopping Is Too Coarse</h2>
+				<div class="two-col">
+					<div>
+						<h3 style="font-size:0.85em; color:#475569;">Classical ES answers <em>one</em> question:</h3>
+						<p style="font-size:0.75em;">"Has the <strong>entire model</strong> stopped improving on the <strong>entire validation set</strong>?"</p>
+						<p style="font-size:0.65em; color:#94a3b8;">One signal &rarr; one decision &rarr; all parameters, all data</p>
+					</div>
+					<div>
+						<h3 style="font-size:0.85em; color:#475569;">Two types of wasted compute:</h3>
+						<ul class="small-list">
+							<li class="fragment"><span class="paper-badge ies">IES</span> Backpropagating through <strong>already-mastered samples</strong> &mdash; the model keeps training on data it has nothing more to learn from</li>
+							<li class="fragment"><span class="paper-badge grades">GradES</span> Updating <strong>already-converged weight matrices</strong> &mdash; some transformer components finish learning long before others</li>
+						</ul>
+					</div>
+				</div>
+				<div class="fragment highlight-box">
+					Both papers replace <strong>one global stop signal</strong> with <strong>many local stop decisions</strong>
+				</div>
+				<aside class="notes">
+					Classical early stopping is a blunt instrument. It monitors one metric (validation loss) and makes one binary decision for the entire model.
+					These two papers identify two distinct sources of wasted computation that global ES misses.
+					IES focuses on the data dimension, GradES on the model dimension.
+				</aside>
+			</section>
+
+			<!-- ============ SLIDE 3: IES Motivation ============ -->
+			<section>
+				<h2><span class="paper-badge ies">IES</span> Motivation</h2>
+				<p class="citation">Yuan, Lin, Feng, Han, Liu &mdash; "Instance-Dependent Early Stopping" (ICLR 2025)</p>
+				<div class="two-col">
+					<div>
+						<ul class="small-list">
+							<li class="fragment">Instances are learned at <strong>different speeds</strong> during training</li>
+							<li class="fragment"><strong>Dynamic removal</strong> of mastered samples from backpropagation (not dataset pruning &mdash; removal happens during training)</li>
+							<li class="fragment">Forward pass still computed on all samples; savings come from <strong>skipping backprop</strong></li>
+						</ul>
+						<div class="fragment result-highlight" style="margin-top:0.5em;">
+							10&ndash;55% mini-batch savings<br>1.2&ndash;1.4&times; wall-time speedup
+						</div>
+					</div>
+					<div class="fig-container">
+						<img src="images/ies-fig1.png" class="r-stretch" alt="IES Figure 1" style="max-height:350px;">
+						<p class="fig-caption">Fig 1: Accuracy maintained while excluded samples grow over epochs</p>
+					</div>
+				</div>
+				<aside class="notes">
+					This paper is published at ICLR 2025. The key insight is simple: not all training samples need the same number of gradient updates.
+					Look at the figure — as training progresses, more and more samples are identified as mastered and excluded, yet accuracy stays the same or even improves.
+					Importantly, this is NOT dataset pruning. Pruning selects a subset before training. IES dynamically removes samples during training as they become mastered.
+				</aside>
+			</section>
+
+			<!-- ============ SLIDE 4: IES Method ============ -->
+			<section>
+				<h2><span class="paper-badge ies">IES</span> What "Mastered" Means</h2>
+				<div class="two-col">
+					<div>
+						<p style="font-size:0.7em;"><strong>Problem:</strong> Raw loss is unsuitable &mdash; different samples have different optimal loss values \(L_i(w^*)\)</p>
+						<div class="formula-box fragment">
+							<p style="font-size:0.65em; margin:0 0 0.3em 0; color:#475569;">Second-order loss difference:</p>
+							\[\Delta^2 L_i(w^{(t)}) = L_i(w^{(t)}) - 2L_i(w^{(t-1)}) + L_i(w^{(t-2)})\]
+						</div>
+						<ul class="small-list fragment" style="margin-top:0.4em;">
+							<li><strong>Intuition:</strong> Measures the <em>curvature</em> of the loss trajectory, not its level</li>
+							<li>Flat loss &ne; low loss; what matters is <strong>no more change</strong></li>
+							<li>Lower coefficient of variation (CV) than 0th or 1st order &rarr; single threshold \(\delta\) works across all samples</li>
+						</ul>
+						<p class="fragment" style="font-size:0.65em; margin-top:0.4em;">
+							<strong>Mastered criterion:</strong> \(|\Delta^2 L_i(w^{(t')})| < \delta\) for recent epochs
+						</p>
+					</div>
+					<div class="fig-container fragment">
+						<img src="images/ies-fig3.png" alt="IES Figure 3" style="max-height:380px;">
+						<p class="fig-caption">Fig 3: CV of loss differences by order &mdash; 2nd order has lowest CV, enabling a universal threshold</p>
+					</div>
+				</div>
+				<aside class="notes">
+					This is the key math slide — spend time on intuition.
+					Why not just use the loss value directly? Because different samples have different optimal losses due to noise, complexity, class imbalance.
+					A noisy sample might have high loss even when fully learned. The second-order difference captures whether the loss is CHANGING, not its absolute value.
+					The CV plot is crucial: it shows that second-order differences have much lower variance across samples, meaning one threshold delta works for all.
+				</aside>
+			</section>
+
+			<!-- ============ SLIDE 5: IES Algorithm & Mechanism (vertical) ============ -->
+			<section>
+				<section>
+					<h2><span class="paper-badge ies">IES</span> Algorithm</h2>
+					<div class="two-col">
+						<div>
+							<ol class="step-list">
+								<li class="fragment"><strong>Forward pass</strong> on all samples &mdash; compute \(L_i(w^{(t)})\) for every \(i \in \mathcal{D}\)</li>
+								<li class="fragment"><strong>Compute</strong> second-order differences \(\Delta^2 L_i\) for each sample</li>
+								<li class="fragment"><strong>Identify mastered:</strong> if \(|\Delta^2 L_i| < \delta\), mark sample as mastered</li>
+								<li class="fragment"><strong>Update training set:</strong> remove mastered samples from backprop batch</li>
+								<li class="fragment"><strong>Backpropagate</strong> only on remaining (non-mastered) samples</li>
+							</ol>
+							<div class="fragment" style="margin-top:0.5em; padding:0.4em 0.6em; background:#fef3c7; border-radius:0.3em; font-size:0.65em;">
+								<strong>Key nuance:</strong> Forward pass is still on ALL samples (needed to compute \(\Delta^2 L_i\)). Savings come from reduced backpropagation only.
+							</div>
+						</div>
+						<div class="fig-container">
+							<img src="images/ies-algo1.png" alt="Algorithm 1" style="max-height:420px;">
+							<p class="fig-caption">Algorithm 1: Instance-dependent Early Stopping</p>
+						</div>
+					</div>
+					<aside class="notes">
+						Walk through the algorithm step by step.
+						Important: the forward pass is still on all samples — we need the loss values to decide who is mastered.
+						The savings come from not computing gradients and not doing backprop on mastered samples.
+						This means the speedup is bounded by the ratio of backprop cost to total cost.
+						Also note: conventional early stopping on validation set is still used as a fallback (line 7).
+					</aside>
+				</section>
+
+				<section>
+					<h2><span class="paper-badge ies">IES</span> Why Does It Help?</h2>
+					<p style="font-size:0.75em;">Removing mastered instances doesn't just save compute &mdash; it <strong>accelerates optimization</strong>:</p>
+					<ul class="small-list">
+						<li class="fragment"><strong>Larger gradient norms</strong> &mdash; remaining batch has more informative gradients</li>
+						<li class="fragment"><strong>Faster loss reduction</strong> &mdash; effective learning rate increases on hard samples</li>
+						<li class="fragment"><strong>Flatter minima</strong> &mdash; lower SAM values and Hessian eigenvalues &rarr; better generalization</li>
+					</ul>
+					<div class="fragment fig-container" style="margin-top:0.3em;">
+						<img src="images/ies-fig4.png" alt="IES Figure 4" style="max-height:320px;">
+						<p class="fig-caption">Fig 4: Test error, gradient norm, SAM value, and Hessian eigenvalue &mdash; IES (orange) vs baseline (blue)</p>
+					</div>
+					<aside class="notes">
+						This is the mechanistic explanation for why IES doesn't just match the baseline but can actually exceed it.
+						By focusing backpropagation on not-yet-mastered samples, the gradient signal is more informative.
+						The SAM and Hessian plots show IES finds flatter minima, which explains the transfer learning improvements.
+					</aside>
+				</section>
+			</section>
+
+			<!-- ============ SLIDE 6: IES Key Results ============ -->
+			<section>
+				<h2><span class="paper-badge ies">IES</span> Key Results</h2>
+				<table class="results-table">
+					<thead>
+						<tr>
+							<th>Dataset</th>
+							<th>Architecture</th>
+							<th>Accuracy (Baseline)</th>
+							<th>Accuracy (IES)</th>
+							<th>Mini-batch Saved</th>
+							<th>Speedup</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td>CIFAR-10</td>
+							<td>ResNet-18</td>
+							<td>92.9%</td>
+							<td>92.9%</td>
+							<td class="highlight-cell">54.6%</td>
+							<td rowspan="3" style="vertical-align:middle;">~1.4&times;</td>
+						</tr>
+						<tr>
+							<td>CIFAR-10</td>
+							<td>ResNet-50</td>
+							<td>93.3%</td>
+							<td>93.1%</td>
+							<td class="highlight-cell">48.5%</td>
+						</tr>
+						<tr>
+							<td>CIFAR-10</td>
+							<td>VGG-16</td>
+							<td>90.9%</td>
+							<td>90.7%</td>
+							<td>30.4%</td>
+						</tr>
+						<tr>
+							<td>CIFAR-100</td>
+							<td>ResNet-34</td>
+							<td>69.8%</td>
+							<td>69.6%</td>
+							<td>29.9%</td>
+							<td rowspan="2" style="vertical-align:middle;">~1.2&times;</td>
+						</tr>
+						<tr>
+							<td>CIFAR-100</td>
+							<td>ResNet-101</td>
+							<td>71.9%</td>
+							<td>72.2%</td>
+							<td>28.3%</td>
+						</tr>
+						<tr>
+							<td>ImageNet-1k</td>
+							<td>ResNet-101</td>
+							<td>74.1%</td>
+							<td>74.3%</td>
+							<td>30.3%</td>
+							<td>~1.3&times;</td>
+						</tr>
+					</tbody>
+				</table>
+				<div class="fragment result-highlight" style="margin-top:0.4em; font-size:0.75em;">
+					<strong>Transfer learning bonus:</strong> IES-pretrained ResNet-101 on ImageNet &rarr; CIFAR-10: <strong>81.2%</strong> vs 80.3% (+0.9%), CIFAR-100: <strong>57.5%</strong> vs 55.6% (+1.9%)
+				</div>
+				<aside class="notes">
+					The key story here: IES saves 10-55% of mini-batches with essentially no accuracy loss, sometimes even slight gains.
+					The strongest selling point is probably the transfer learning result — models pretrained with IES are actually better at transferring to new tasks.
+					This makes sense given the flatter minima finding from the previous slide.
+				</aside>
+			</section>
+
+			<!-- ============ SLIDE 7: GradES Motivation ============ -->
+			<section>
+				<h2><span class="paper-badge grades">GradES</span> Motivation</h2>
+				<p class="citation">Wen, Zeng, Zhou, Liu, Hosseinzadeh, Su, Rawassizadeh &mdash; "GradES: Significantly Faster Training in Transformers with Gradient-Based Early Stopping" (2025)</p>
+				<div class="two-col">
+					<div>
+						<p style="font-size:0.7em;"><strong>Transition:</strong> IES = data-level granularity.<br>GradES = <strong>model-level</strong> granularity.</p>
+						<ul class="small-list">
+							<li class="fragment">Different weight matrices in transformers <strong>converge at different rates</strong></li>
+							<li class="fragment">Uses gradient information <strong>already computed</strong> during backprop &mdash; no extra cost</li>
+							<li class="fragment"><strong>No validation overhead</strong> &mdash; classical ES requires frequent validation passes that can paradoxically <em>slow</em> training</li>
+						</ul>
+						<div class="fragment result-highlight" style="margin-top:0.5em;">
+							1.57&ndash;7.22&times; speedup<br>+1.2% avg accuracy (language), +3.88% (multimodal)
+						</div>
+					</div>
+					<div class="fig-container">
+						<img src="images/grades-fig1.png" alt="GradES Figure 1" style="max-height:370px;">
+						<p class="fig-caption">Fig 1: L1 norms of gradient changes per component in layer 7 of Qwen3-0.6B &mdash; different matrices converge at vastly different rates</p>
+					</div>
+				</div>
+				<aside class="notes">
+					Now we shift from the data dimension to the model dimension.
+					GradES observes that different weight matrices in a transformer converge at very different rates.
+					Look at the figure: some components' gradients become tiny early on, while others keep changing.
+					A key practical advantage: classical ES actually SLOWS training on large models because validation passes are expensive. GradES avoids this entirely.
+				</aside>
+			</section>
+
+			<!-- ============ SLIDE 8: GradES Method ============ -->
+			<section>
+				<h2><span class="paper-badge grades">GradES</span> Method</h2>
+				<div class="two-col">
+					<div>
+						<div class="formula-box grades-formula">
+							<p style="font-size:0.65em; margin:0 0 0.3em 0; color:#475569;">Gradient change magnitude (element-wise L1):</p>
+							\[G_W^{(l)}(t) = \left\| \nabla W_t^{(l)} - \nabla W_{t-1}^{(l)} \right\|_1\]
+						</div>
+						<ul class="small-list" style="margin-top:0.5em;">
+							<li class="fragment"><strong>Grace period:</strong> Wait \(\alpha T\) steps before monitoring (let training stabilize)</li>
+							<li class="fragment"><strong>Freezing rule:</strong> If \(G_W^{(l)}(t) < \tau\), freeze matrix \(W^{(l)}\) &mdash; skip weight updates</li>
+							<li class="fragment"><strong>Key design:</strong> Frozen = no updates, but <strong>still in computation graph</strong> (gradient flow preserved for other layers)</li>
+							<li class="fragment"><strong>Monitored per layer:</strong> \(W_q, W_k, W_v, W_o, W_{up}, W_{down}, W_{gate}\)</li>
+							<li class="fragment"><strong>Termination:</strong> When all matrices frozen &rarr; stop training</li>
+						</ul>
+					</div>
+					<div class="fig-container fragment">
+						<img src="images/grades-fig2.png" alt="GradES Figure 2" style="max-height:300px;">
+						<p class="fig-caption">Fig 2: GradES architecture &mdash; lock icons show frozen components; colors indicate gradient magnitude changes</p>
+					</div>
+				</div>
+				<aside class="notes">
+					The method is elegant: track how much each weight matrix's gradient changes between steps.
+					If the gradient is barely changing, the matrix has converged — freeze it.
+					Crucially, frozen matrices still participate in forward and backward passes — only the weight update is skipped.
+					This preserves gradient flow to other layers, unlike pruning which would break the computation graph.
+					The grace period alpha*T prevents premature freezing during the initial unstable phase of training.
+				</aside>
+			</section>
+
+			<!-- ============ SLIDE 9: GradES Results ============ -->
+			<section>
+				<h2><span class="paper-badge grades">GradES</span> Results</h2>
+				<table class="results-table">
+					<thead>
+						<tr>
+							<th>Model</th>
+							<th>Method</th>
+							<th>Time (s)</th>
+							<th>Speedup</th>
+							<th>Avg. Accuracy</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td rowspan="3">Qwen3-0.6B</td>
+							<td>Full Parameter</td>
+							<td>6,550</td>
+							<td>1.00&times;</td>
+							<td>66.53%</td>
+						</tr>
+						<tr>
+							<td>FP+ES</td>
+							<td>8,569</td>
+							<td style="color:#ef4444;">0.76&times;</td>
+							<td>66.66%</td>
+						</tr>
+						<tr>
+							<td><strong>FP+GradES</strong></td>
+							<td class="highlight-cell">4,018</td>
+							<td class="highlight-cell">1.63&times;</td>
+							<td>66.99%</td>
+						</tr>
+						<tr>
+							<td rowspan="2">LLaMA-3.1-8B</td>
+							<td>Full Parameter</td>
+							<td>9,541</td>
+							<td>1.00&times;</td>
+							<td>86.27%</td>
+						</tr>
+						<tr>
+							<td><strong>FP+GradES</strong></td>
+							<td class="highlight-cell">5,832</td>
+							<td class="highlight-cell">1.64&times;</td>
+							<td>86.21%</td>
+						</tr>
+						<tr>
+							<td rowspan="2">Qwen3-14B</td>
+							<td>Full Parameter</td>
+							<td>16,202</td>
+							<td>1.00&times;</td>
+							<td>90.80%</td>
+						</tr>
+						<tr>
+							<td><strong>FP+GradES</strong></td>
+							<td class="highlight-cell">10,721</td>
+							<td class="highlight-cell">1.51&times;</td>
+							<td>90.81%</td>
+						</tr>
+					</tbody>
+				</table>
+				<div class="fragment" style="font-size:0.7em; margin-top:0.3em;">
+					<strong>Key insight:</strong> Classical ES can <em>increase</em> runtime (0.59&ndash;0.76&times;) due to validation overhead. GradES avoids this entirely.
+				</div>
+				<div class="fragment result-highlight" style="font-size:0.75em;">
+					<strong>LoRA compatible:</strong> Qwen3-0.6B + LoRA + GradES = 907s vs 6,550s baseline &rarr; <strong>7.22&times; faster</strong>
+				</div>
+				<aside class="notes">
+					Notice the red numbers: classical early stopping actually makes training SLOWER on these models because the validation passes are expensive.
+					GradES avoids validation entirely and achieves consistent speedups.
+					The LoRA result is particularly impressive: 7.22x speedup on Qwen3-0.6B by combining LoRA's parameter efficiency with GradES's component-level stopping.
+					Accuracy is maintained or even slightly improved in most cases.
+				</aside>
+			</section>
+
+			<!-- ============ SLIDE 10: IES vs GradES Comparison ============ -->
+			<section>
+				<h2>IES vs GradES: Comparison</h2>
+				<table class="comparison">
+					<thead>
+						<tr>
+							<th style="width:22%;">Dimension</th>
+							<th style="width:39%;"><span class="paper-badge ies">IES</span> Instance-Dependent ES</th>
+							<th style="width:39%;"><span class="paper-badge grades">GradES</span> Gradient-Based ES</th>
+						</tr>
+					</thead>
+					<tbody>
+						<tr>
+							<td><strong>Granularity</strong></td>
+							<td>Per training sample</td>
+							<td>Per weight matrix</td>
+						</tr>
+						<tr>
+							<td><strong>Signal</strong></td>
+							<td>2nd-order loss differences \(\Delta^2 L_i\)</td>
+							<td>L1 norm of gradient changes \(G_W\)</td>
+						</tr>
+						<tr>
+							<td><strong>Savings source</strong></td>
+							<td>Skip backprop on mastered samples</td>
+							<td>Skip weight updates for converged matrices</td>
+						</tr>
+						<tr>
+							<td><strong>Model family</strong></td>
+							<td>CNNs (ResNet, VGG, DenseNet)</td>
+							<td>Transformers (LLMs, VLMs)</td>
+						</tr>
+						<tr>
+							<td><strong>Threshold</strong></td>
+							<td>Single \(\delta\) (justified by low CV)</td>
+							<td>\(\tau\) per model (manual tuning)</td>
+						</tr>
+						<tr>
+							<td><strong>Regularization effect</strong></td>
+							<td>Flatter minima &rarr; better transfer</td>
+							<td>Prevents component-level overfitting</td>
+						</tr>
+					</tbody>
+				</table>
+				<div class="fragment quote-box">
+					"IES asks <em>which data points</em> still deserve gradient updates;<br>
+					GradES asks <em>which model components</em> still deserve gradient updates."
+				</div>
+				<aside class="notes">
+					This is the conceptual center of the talk.
+					Both papers share the same philosophical insight: training effort should be directed where learning is still happening.
+					They just apply this insight along different axes — data vs model architecture.
+					Note they're also complementary in model family: IES is demonstrated on CNNs, GradES on transformers.
+					The quote at the bottom captures the key distinction.
+				</aside>
+			</section>
+
+			<!-- ============ SLIDE 11: Critical Assessment ============ -->
+			<section>
+				<h2>Critical Assessment</h2>
+				<div class="two-col">
+					<div>
+						<h3 style="font-size:0.8em;"><span class="paper-badge ies">IES</span></h3>
+						<div class="assessment-card">
+							<h4>Strengths</h4>
+							<ul>
+								<li>Elegant &amp; model-agnostic (works with any architecture/optimizer)</li>
+								<li>Improved transfer learning &mdash; unexpected bonus</li>
+								<li>Theoretically motivated (CV analysis)</li>
+							</ul>
+						</div>
+						<div class="assessment-card limitation" style="margin-top:0.3em;">
+							<h4>Limitations</h4>
+							<ul>
+								<li>No theory for <em>why</em> 2nd-order is optimal (empirical only)</li>
+								<li>Forward pass still required on all samples</li>
+								<li>Fairness impact not studied (which samples get excluded?)</li>
+							</ul>
+						</div>
+					</div>
+					<div>
+						<h3 style="font-size:0.8em;"><span class="paper-badge grades">GradES</span></h3>
+						<div class="assessment-card">
+							<h4>Strengths</h4>
+							<ul>
+								<li>Practical for large transformers (avoids validation overhead)</li>
+								<li>LoRA compatible &mdash; compounding efficiency gains</li>
+								<li>Convergence theory provided</li>
+							</ul>
+						</div>
+						<div class="assessment-card limitation" style="margin-top:0.3em;">
+							<h4>Limitations</h4>
+							<ul>
+								<li>Manual \(\tau\) tuning per model (~3% monitoring overhead)</li>
+								<li>Static freezing &mdash; no mechanism to unfreeze</li>
+								<li>Unclear applicability beyond transformers</li>
+							</ul>
+						</div>
+					</div>
+				</div>
+				<aside class="notes">
+					Let's be critical about both papers.
+					IES is elegant but the choice of second-order differences is empirically motivated — they show it works better than 0th or 1st order, but don't prove it's optimal.
+					The forward pass bottleneck is a real limitation: you still need to evaluate every sample every epoch.
+					For GradES, the manual threshold tuning is a practical concern. The static freezing (no unfreeze) could be problematic if a component needs to adapt later in training.
+					Both papers test on standard benchmarks — robustness to noise and distribution shift is unknown.
+				</aside>
+			</section>
+
+			<!-- ============ SLIDE 12: Conclusion & Discussion ============ -->
+			<section class="center-slide">
+				<h2>Conclusion &amp; Discussion</h2>
+				<div class="highlight-box" style="font-size:0.9em; margin-bottom:0.6em;">
+					Training effort should follow <strong>where learning is still happening</strong>
+				</div>
+				<div style="text-align:left; max-width:85%; margin:0 auto;">
+					<h3 style="font-size:0.85em; text-align:left;">Key Takeaways</h3>
+					<ol class="small-list">
+						<li class="fragment">Global early stopping is too coarse &mdash; it ignores heterogeneity in both data and model components</li>
+						<li class="fragment">Local stopping criteria (per-sample or per-matrix) can save significant compute while maintaining or improving accuracy</li>
+						<li class="fragment">Future direction: <strong>hybrid stopping</strong> that combines data-level and component-level granularity</li>
+					</ol>
+					<h3 style="font-size:0.85em; text-align:left; margin-top:0.5em;">Discussion Questions</h3>
+					<ul class="discussion-list fragment">
+						<li>Can IES + GradES be combined? (per-sample &times; per-component stopping)</li>
+						<li>Can thresholds \(\delta, \tau\) be learned online instead of set manually?</li>
+						<li>How robust are these methods to label noise or distribution shift?</li>
+						<li>What are the fairness implications of excluding samples early?</li>
+					</ul>
+				</div>
+				<aside class="notes">
+					To wrap up: both papers share a common insight that training resources should be directed where they're most needed.
+					The natural next step is combining both approaches — stop training on mastered samples AND stop updating converged components.
+					Open questions around threshold learning, robustness, and fairness provide plenty of research directions.
+					I'd love to hear your thoughts — especially on the fairness question: if certain demographic groups are systematically excluded earlier, could this introduce bias?
+				</aside>
+			</section>
+
+		</div>
+	</div>
+
+	<script src="dist/reveal.js"></script>
+	<script src="plugin/math/math.js"></script>
+	<script src="plugin/notes/notes.js"></script>
+	<script src="plugin/zoom/zoom.js"></script>
+	<script>
+		Reveal.initialize({
+			hash: true,
+			slideNumber: 'c/t',
+			width: 1920,
+			height: 1080,
+			margin: 0.04,
+			transition: 'slide',
+
+			mathjax4: {
+				tex: {
+					inlineMath: [['\\(', '\\)']],
+					displayMath: [['\\[', '\\]']],
+				},
+				options: {
+					skipHtmlTags: ['script', 'noscript', 'style', 'textarea', 'pre', 'code']
+				},
+				output: {
+					font: 'mathjax-stix2',
+					displayOverflow: 'linebreak'
+				}
+			},
+
+			plugins: [ RevealMath.MathJax4, RevealNotes, RevealZoom ]
+		});
+	</script>
+</body>
+</html>
