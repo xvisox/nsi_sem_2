@@ -9,9 +9,6 @@
   <link rel="stylesheet" href="dist/reset.css">
   <link rel="stylesheet" href="dist/reveal.css">
 
-  <!-- Font Awesome for icons -->
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
-
   <!-- Custom styles -->
   <link rel="stylesheet" href="styles.css">
 </head>
@@ -22,14 +19,7 @@
       <!-- ==================== SLIDE 1: Title ==================== -->
       <section id="title" class="section-divider" data-state="is-section-divider">
         <h1>Fine-Grained Early Stopping<br>in Deep Learning</h1>
-        <p>From Samples to Transformer Components</p>
-        <p class="text-muted" style="font-size: 13pt; margin-top: 30px;">ML Seminar &bull; March 2026</p>
-        <div class="fragment" style="display: flex; justify-content: center; gap: 12px; margin-top: 30px; flex-wrap: wrap;">
-          <span class="roadmap-item roadmap-problem"><i class="fa-solid fa-circle-question"></i> Problem</span>
-          <span class="roadmap-item roadmap-ies"><i class="fa-solid fa-database"></i> IES (per-instance)</span>
-          <span class="roadmap-item roadmap-grades"><i class="fa-solid fa-microchip"></i> GradES (per-component)</span>
-          <span class="roadmap-item roadmap-synth"><i class="fa-solid fa-scale-balanced"></i> Comparison &amp; Critique</span>
-        </div>
+        <p class="text-muted" style="font-size: 16pt; margin-top: 30px;">Hubert Michalski &bull; ML Seminar &bull; March 2026</p>
         <aside class="notes">
           Welcome. Today we look at two recent papers that challenge the coarseness of traditional early stopping.
           Both ask: can we make finer-grained stopping decisions during training?
@@ -51,13 +41,13 @@
             <div>
               <h3 style="color: var(--muted-color);">Two types of wasted compute:</h3>
               <ul>
-                <li class="fragment"><span class="paper-badge ies">IES</span> Backpropagating through <strong>already-mastered samples</strong> &mdash; the model keeps training on data it has nothing more to learn from</li>
-                <li class="fragment"><span class="paper-badge grades">GradES</span> Updating <strong>already-converged weight matrices</strong> &mdash; some transformer components finish learning long before others</li>
+                <li><span class="paper-badge ies">IES</span> Backpropagating through <strong>already-mastered samples</strong> &mdash; the model keeps training on data it has nothing more to learn from</li>
+                <li><span class="paper-badge grades">GradES</span> Updating <strong>already-converged weight matrices</strong> &mdash; some transformer components finish learning long before others</li>
               </ul>
             </div>
           </div>
-          <div class="fragment highlight-box" style="margin-top: 20px;">
-            <p style="margin: 0;"><i class="fa-solid fa-lightbulb" style="color: #f59e0b;"></i> Both papers replace <strong>one global stop signal</strong> with <strong>many local stop decisions</strong></p>
+          <div class="callout-box" style="margin-top: 25px; text-align: center;">
+            <p style="margin: 0;">Both papers replace <strong>one global stop signal</strong> with <strong>many local stop decisions</strong></p>
           </div>
         </div>
         <aside class="notes">
@@ -75,12 +65,12 @@
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start;">
             <div>
               <ul>
-                <li class="fragment">Instances are learned at <strong>different speeds</strong> during training</li>
-                <li class="fragment"><strong>Dynamic removal</strong> of mastered samples from backpropagation (not dataset pruning &mdash; removal happens during training)</li>
-                <li class="fragment">Forward pass still computed on all samples; savings come from <strong>skipping backprop</strong></li>
+                <li>Instances are learned at <strong>different speeds</strong> during training</li>
+                <li><strong>Dynamic removal</strong> of mastered samples from backpropagation (not dataset pruning &mdash; removal happens during training)</li>
+                <li>Forward pass still computed on all samples; savings come from <strong>skipping backprop</strong></li>
               </ul>
-              <div class="fragment result-highlight" style="margin-top: 15px;">
-                <p style="margin: 0;"><i class="fa-solid fa-bolt"></i> <strong>10&ndash;55% mini-batch savings, 1.2&ndash;1.4&times; wall-time speedup</strong></p>
+              <div class="result-highlight" style="margin-top: 15px;">
+                <p style="margin: 0;"><strong>10&ndash;55% mini-batch savings, 1.2&ndash;1.4&times; wall-time speedup</strong></p>
               </div>
             </div>
             <div style="text-align: center;">
@@ -103,20 +93,20 @@
           <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 30px; align-items: start;">
             <div>
               <p><strong>Problem:</strong> Raw loss is unsuitable &mdash; different samples have different optimal loss values \(L_i(w^*)\)</p>
-              <div class="fragment formula-box">
+              <div class="formula-box">
                 <p style="margin: 0 0 5px 0; font-size: 13pt;" class="text-muted">Second-order loss difference:</p>
                 \[\Delta^2 L_i(w^{(t)}) = L_i(w^{(t)}) - 2L_i(w^{(t-1)}) + L_i(w^{(t-2)})\]
               </div>
-              <ul class="fragment" style="margin-top: 10px;">
+              <ul style="margin-top: 10px;">
                 <li><strong>Intuition:</strong> Measures the <em>curvature</em> of the loss trajectory, not its level</li>
                 <li>Flat loss &ne; low loss; what matters is <strong>no more change</strong></li>
                 <li>Lower CV than 0th/1st order &rarr; single threshold \(\delta\) works across all samples</li>
               </ul>
-              <p class="fragment" style="font-size: 14pt; margin-top: 10px;">
+              <p style="font-size: 14pt; margin-top: 10px;">
                 <strong>Mastered criterion:</strong> \(|\Delta^2 L_i(w^{(t')})| &lt; \delta\) for recent epochs
               </p>
             </div>
-            <div class="fragment" style="text-align: center;">
+            <div style="text-align: center;">
               <img src="images/ies-fig3.png" alt="IES Figure 3" style="max-height: 340px; border-radius: var(--box-radius);">
               <p class="fig-caption">Fig 3: CV of loss differences by order &mdash; 2nd order has lowest CV</p>
             </div>
@@ -139,14 +129,14 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start;">
               <div>
                 <ol class="step-list">
-                  <li class="fragment"><strong>Forward pass</strong> on all samples &mdash; compute \(L_i(w^{(t)})\) for every \(i \in \mathcal{D}\)</li>
-                  <li class="fragment"><strong>Compute</strong> second-order differences \(\Delta^2 L_i\) for each sample</li>
-                  <li class="fragment"><strong>Identify mastered:</strong> if \(|\Delta^2 L_i| &lt; \delta\), mark sample as mastered</li>
-                  <li class="fragment"><strong>Update training set:</strong> remove mastered samples from backprop batch</li>
-                  <li class="fragment"><strong>Backpropagate</strong> only on remaining (non-mastered) samples</li>
+                  <li><strong>Forward pass</strong> on all samples &mdash; compute \(L_i(w^{(t)})\) for every \(i \in \mathcal{D}\)</li>
+                  <li><strong>Compute</strong> second-order differences \(\Delta^2 L_i\) for each sample</li>
+                  <li><strong>Identify mastered:</strong> if \(|\Delta^2 L_i| &lt; \delta\), mark sample as mastered</li>
+                  <li><strong>Update training set:</strong> remove mastered samples from backprop batch</li>
+                  <li><strong>Backpropagate</strong> only on remaining (non-mastered) samples</li>
                 </ol>
-                <div class="fragment callout-box" style="margin-top: 12px;">
-                  <p style="margin: 0; font-size: 13pt;"><i class="fa-solid fa-triangle-exclamation" style="color: #f59e0b;"></i> <strong>Key nuance:</strong> Forward pass is still on ALL samples (needed to compute \(\Delta^2 L_i\)). Savings come from reduced backpropagation only.</p>
+                <div class="callout-box" style="margin-top: 12px;">
+                  <p style="margin: 0; font-size: 13pt;"><strong>Key nuance:</strong> Forward pass is still on ALL samples (needed to compute \(\Delta^2 L_i\)). Savings come from reduced backpropagation only.</p>
                 </div>
               </div>
               <div style="text-align: center;">
@@ -170,12 +160,12 @@
           <div class="content">
             <p class="text-lg">Removing mastered instances doesn't just save compute &mdash; it <strong>accelerates optimization</strong>:</p>
             <ul>
-              <li class="fragment"><strong>Larger gradient norms</strong> &mdash; remaining batch has more informative gradients</li>
-              <li class="fragment"><strong>Faster loss reduction</strong> &mdash; effective learning rate increases on hard samples</li>
-              <li class="fragment"><strong>Flatter minima</strong> &mdash; lower SAM values and Hessian eigenvalues &rarr; better generalization</li>
+              <li><strong>Larger gradient norms</strong> &mdash; remaining batch has more informative gradients</li>
+              <li><strong>Faster loss reduction</strong> &mdash; effective learning rate increases on hard samples</li>
+              <li><strong>Flatter minima</strong> &mdash; lower SAM values and Hessian eigenvalues &rarr; better generalization</li>
             </ul>
-            <div class="fragment" style="text-align: center; margin-top: 10px;">
-              <img src="images/ies-fig4.png" alt="IES Figure 4" style="max-height: 260px; border-radius: var(--box-radius);">
+            <div style="text-align: center; margin-top: 15px;">
+              <img src="images/ies-fig4.png" alt="IES Figure 4" style="max-height: 280px; border-radius: var(--box-radius);">
               <p class="fig-caption">Fig 4: Test error, gradient norm, SAM value, and Hessian eigenvalue &mdash; IES (orange) vs baseline (blue)</p>
             </div>
           </div>
@@ -250,8 +240,8 @@
               </tr>
             </tbody>
           </table>
-          <div class="fragment result-highlight" style="margin-top: 12px;">
-            <p style="margin: 0;"><i class="fa-solid fa-arrow-up-right-dots"></i> <strong>Transfer learning bonus:</strong> IES-pretrained ResNet-101 on ImageNet &rarr; CIFAR-10: <strong>81.2%</strong> vs 80.3% (+0.9%), CIFAR-100: <strong>57.5%</strong> vs 55.6% (+1.9%)</p>
+          <div class="result-highlight" style="margin-top: 12px;">
+            <p style="margin: 0;"><strong>Transfer learning:</strong> IES-pretrained ResNet-101 on ImageNet &rarr; CIFAR-10: <strong>81.2%</strong> vs 80.3% (+0.9%), CIFAR-100: <strong>57.5%</strong> vs 55.6% (+1.9%)</p>
           </div>
         </div>
         <aside class="notes">
@@ -270,12 +260,12 @@
             <div>
               <p><strong>Transition:</strong> IES = data-level granularity. GradES = <strong>model-level</strong> granularity.</p>
               <ul>
-                <li class="fragment">Different weight matrices in transformers <strong>converge at different rates</strong></li>
-                <li class="fragment">Uses gradient information <strong>already computed</strong> during backprop &mdash; no extra cost</li>
-                <li class="fragment"><strong>No validation overhead</strong> &mdash; classical ES requires frequent validation passes that can paradoxically <em>slow</em> training</li>
+                <li>Different weight matrices in transformers <strong>converge at different rates</strong></li>
+                <li>Uses gradient information <strong>already computed</strong> during backprop &mdash; no extra cost</li>
+                <li><strong>No validation overhead</strong> &mdash; classical ES requires frequent validation passes that can paradoxically <em>slow</em> training</li>
               </ul>
-              <div class="fragment result-highlight" style="margin-top: 12px;">
-                <p style="margin: 0;"><i class="fa-solid fa-bolt"></i> <strong>1.57&ndash;7.22&times; speedup, +1.2% avg accuracy (language), +3.88% (multimodal)</strong></p>
+              <div class="result-highlight" style="margin-top: 12px;">
+                <p style="margin: 0;"><strong>1.57&ndash;7.22&times; speedup, +1.2% avg accuracy (language), +3.88% (multimodal)</strong></p>
               </div>
             </div>
             <div style="text-align: center;">
@@ -303,14 +293,14 @@
                 \[G_W^{(l)}(t) = \left\| \nabla W_t^{(l)} - \nabla W_{t-1}^{(l)} \right\|_1\]
               </div>
               <ul style="margin-top: 12px;">
-                <li class="fragment"><strong>Grace period:</strong> Wait \(\alpha T\) steps before monitoring (let training stabilize)</li>
-                <li class="fragment"><strong>Freezing rule:</strong> If \(G_W^{(l)}(t) &lt; \tau\), freeze matrix \(W^{(l)}\) &mdash; skip weight updates</li>
-                <li class="fragment"><strong>Key design:</strong> Frozen = no updates, but <strong>still in computation graph</strong> (gradient flow preserved for other layers)</li>
-                <li class="fragment"><strong>Monitored per layer:</strong> \(W_q, W_k, W_v, W_o, W_{up}, W_{down}, W_{gate}\)</li>
-                <li class="fragment"><strong>Termination:</strong> When all matrices frozen &rarr; stop training</li>
+                <li><strong>Grace period:</strong> Wait \(\alpha T\) steps before monitoring (let training stabilize)</li>
+                <li><strong>Freezing rule:</strong> If \(G_W^{(l)}(t) &lt; \tau\), freeze matrix \(W^{(l)}\) &mdash; skip weight updates</li>
+                <li><strong>Key design:</strong> Frozen = no updates, but <strong>still in computation graph</strong> (gradient flow preserved for other layers)</li>
+                <li><strong>Monitored per layer:</strong> \(W_q, W_k, W_v, W_o, W_{up}, W_{down}, W_{gate}\)</li>
+                <li><strong>Termination:</strong> When all matrices frozen &rarr; stop training</li>
               </ul>
             </div>
-            <div class="fragment" style="text-align: center;">
+            <div style="text-align: center;">
               <img src="images/grades-fig2.png" alt="GradES Figure 2" style="max-height: 300px; border-radius: var(--box-radius);">
               <p class="fig-caption">Fig 2: GradES architecture &mdash; lock icons show frozen components</p>
             </div>
@@ -348,13 +338,13 @@
                 <td>66.53%</td>
               </tr>
               <tr>
-                <td>FP+ES</td>
+                <td>FP + ES</td>
                 <td>8,569</td>
-                <td style="color: #ef4444; font-weight: 600;">0.76&times;</td>
+                <td style="color: #c0392b; font-weight: 600;">0.76&times;</td>
                 <td>66.66%</td>
               </tr>
               <tr>
-                <td><strong>FP+GradES</strong></td>
+                <td><strong>FP + GradES</strong></td>
                 <td class="cell-highlight">4,018</td>
                 <td class="cell-highlight">1.63&times;</td>
                 <td>66.99%</td>
@@ -367,7 +357,7 @@
                 <td>86.27%</td>
               </tr>
               <tr>
-                <td><strong>FP+GradES</strong></td>
+                <td><strong>FP + GradES</strong></td>
                 <td class="cell-highlight">5,832</td>
                 <td class="cell-highlight">1.64&times;</td>
                 <td>86.21%</td>
@@ -380,18 +370,18 @@
                 <td>90.80%</td>
               </tr>
               <tr>
-                <td><strong>FP+GradES</strong></td>
+                <td><strong>FP + GradES</strong></td>
                 <td class="cell-highlight">10,721</td>
                 <td class="cell-highlight">1.51&times;</td>
                 <td>90.81%</td>
               </tr>
             </tbody>
           </table>
-          <div class="fragment" style="margin-top: 8px;">
-            <p><i class="fa-solid fa-circle-exclamation" style="color: #ef4444;"></i> <strong>Key insight:</strong> Classical ES can <em>increase</em> runtime (0.59&ndash;0.76&times;) due to validation overhead.</p>
+          <div style="margin-top: 8px;">
+            <p style="font-size: 14pt;"><strong>Key insight:</strong> Classical ES can <em>increase</em> runtime (0.59&ndash;0.76&times;) due to validation overhead.</p>
           </div>
-          <div class="fragment result-highlight">
-            <p style="margin: 0;"><i class="fa-solid fa-rocket"></i> <strong>LoRA compatible:</strong> Qwen3-0.6B + LoRA + GradES = 907s vs 6,550s baseline &rarr; <strong>7.22&times; faster</strong></p>
+          <div class="result-highlight">
+            <p style="margin: 0;"><strong>LoRA compatible:</strong> Qwen3-0.6B + LoRA + GradES = 907s vs 6,550s baseline &rarr; <strong>7.22&times; faster</strong></p>
           </div>
         </div>
         <aside class="notes">
@@ -447,7 +437,7 @@
               </tr>
             </tbody>
           </table>
-          <div class="fragment quote-box">
+          <div class="quote-box">
             <p style="margin: 0;">"IES asks <em>which data points</em> still deserve gradient updates;<br>GradES asks <em>which model components</em> still deserve gradient updates."</p>
           </div>
         </div>
@@ -467,7 +457,7 @@
             <div>
               <h3 style="font-size: 18pt;"><span class="paper-badge ies">IES</span></h3>
               <div class="assessment-card strength">
-                <p style="margin: 0 0 5px 0;"><strong><i class="fa-solid fa-check"></i> Strengths</strong></p>
+                <p style="margin: 0 0 5px 0;"><strong>Strengths</strong></p>
                 <ul>
                   <li>Elegant &amp; model-agnostic (any architecture/optimizer)</li>
                   <li>Improved transfer learning &mdash; unexpected bonus</li>
@@ -475,7 +465,7 @@
                 </ul>
               </div>
               <div class="assessment-card limitation">
-                <p style="margin: 0 0 5px 0;"><strong><i class="fa-solid fa-xmark"></i> Limitations</strong></p>
+                <p style="margin: 0 0 5px 0;"><strong>Limitations</strong></p>
                 <ul>
                   <li>No theory for <em>why</em> 2nd-order is optimal</li>
                   <li>Forward pass still required on all samples</li>
@@ -486,7 +476,7 @@
             <div>
               <h3 style="font-size: 18pt;"><span class="paper-badge grades">GradES</span></h3>
               <div class="assessment-card strength">
-                <p style="margin: 0 0 5px 0;"><strong><i class="fa-solid fa-check"></i> Strengths</strong></p>
+                <p style="margin: 0 0 5px 0;"><strong>Strengths</strong></p>
                 <ul>
                   <li>Practical for large transformers (no validation overhead)</li>
                   <li>LoRA compatible &mdash; compounding efficiency</li>
@@ -494,7 +484,7 @@
                 </ul>
               </div>
               <div class="assessment-card limitation">
-                <p style="margin: 0 0 5px 0;"><strong><i class="fa-solid fa-xmark"></i> Limitations</strong></p>
+                <p style="margin: 0 0 5px 0;"><strong>Limitations</strong></p>
                 <ul>
                   <li>Manual \(\tau\) tuning per model (~3% overhead)</li>
                   <li>Static freezing &mdash; no mechanism to unfreeze</li>
@@ -513,25 +503,31 @@
       </section>
 
       <!-- ==================== SLIDE 12: Conclusion ==================== -->
-      <section id="slide-conclusion" class="section-divider" data-state="is-section-divider">
-        <h2 style="font-size: 32pt;">Conclusion &amp; Discussion</h2>
-        <div class="highlight-box" style="max-width: 80%; margin: 20px auto;">
-          <p style="margin: 0; font-size: 18pt;">Training effort should follow <strong>where learning is still happening</strong></p>
-        </div>
-        <div style="text-align: left; max-width: 80%; margin: 0 auto;">
-          <p style="font-size: 16pt; font-weight: 600; margin-bottom: 5px;">Key Takeaways</p>
-          <ol style="font-size: 14pt;">
-            <li class="fragment">Global early stopping is too coarse &mdash; it ignores heterogeneity in both data and model components</li>
-            <li class="fragment">Local stopping criteria (per-sample or per-matrix) save significant compute while maintaining or improving accuracy</li>
-            <li class="fragment">Future direction: <strong>hybrid stopping</strong> that combines data-level and component-level granularity</li>
-          </ol>
-          <p style="font-size: 16pt; font-weight: 600; margin-bottom: 5px; margin-top: 15px;">Discussion Questions</p>
-          <ul class="fragment" style="font-size: 14pt;">
-            <li><i class="fa-solid fa-circle-question" style="color: var(--primary-color); margin-right: 5px;"></i> Can IES + GradES be combined? (per-sample &times; per-component stopping)</li>
-            <li><i class="fa-solid fa-circle-question" style="color: var(--primary-color); margin-right: 5px;"></i> Can thresholds \(\delta, \tau\) be learned online instead of set manually?</li>
-            <li><i class="fa-solid fa-circle-question" style="color: var(--primary-color); margin-right: 5px;"></i> How robust are these methods to label noise or distribution shift?</li>
-            <li><i class="fa-solid fa-circle-question" style="color: var(--primary-color); margin-right: 5px;"></i> Fairness implications of excluding samples early?</li>
-          </ul>
+      <section id="slide-conclusion">
+        <h2>Conclusion &amp; Discussion</h2>
+        <div class="content">
+          <div class="callout-box" style="text-align: center; margin-bottom: 20px;">
+            <p style="margin: 0; font-size: 18pt;">Training effort should follow <strong>where learning is still happening</strong></p>
+          </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
+            <div>
+              <p style="font-size: 15pt; font-weight: 600; margin-bottom: 8px;">Key Takeaways</p>
+              <ol style="font-size: 14pt;">
+                <li>Global early stopping is too coarse &mdash; it ignores heterogeneity in both data and model components</li>
+                <li>Local stopping criteria (per-sample or per-matrix) save significant compute while maintaining or improving accuracy</li>
+                <li>Future direction: <strong>hybrid stopping</strong> combining data-level and component-level granularity</li>
+              </ol>
+            </div>
+            <div>
+              <p style="font-size: 15pt; font-weight: 600; margin-bottom: 8px;">Discussion Questions</p>
+              <ul style="font-size: 14pt;">
+                <li>Can IES and GradES be combined? (per-sample &times; per-component stopping)</li>
+                <li>Can thresholds \(\delta, \tau\) be learned online instead of set manually?</li>
+                <li>How robust are these methods to label noise or distribution shift?</li>
+                <li>Fairness implications of excluding samples early?</li>
+              </ul>
+            </div>
+          </div>
         </div>
         <aside class="notes">
           To wrap up: both papers share a common insight that training resources should be directed where they're most needed.
