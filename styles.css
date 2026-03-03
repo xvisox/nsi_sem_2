@@ -120,12 +120,12 @@
   top: 0.6em;
   width: 8px;
   height: 8px;
-  background: var(--primary-color);
+  background: var(--muted-color);
   border-radius: 50%;
 }
 
 .reveal ul ul li::before {
-  background: var(--muted-color);
+  background: #94a3b8;
   width: 6px;
   height: 6px;
 }
@@ -306,18 +306,36 @@
 }
 
 /* ===========================================
-   QUOTE BOX
+   TAKEAWAYS GRID (final slide)
    =========================================== */
 
-.quote-box {
-  background: linear-gradient(135deg, var(--ies-bg), var(--grades-bg));
-  border: 2px solid #94a3b8;
-  padding: 28px 40px;
+.takeaways-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.takeaway-card {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid #475569;
   border-radius: var(--box-radius);
-  font-style: italic;
-  text-align: center;
-  margin-top: 20px;
-  font-size: 22pt;
+  padding: 14px 16px;
+}
+
+.takeaway-label {
+  margin: 0 0 4px 0;
+  font-size: 12pt !important;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-color) !important;
+}
+
+.takeaway-text {
+  margin: 0;
+  font-size: 16pt !important;
+  line-height: 1.35;
 }
 
 /* ===========================================

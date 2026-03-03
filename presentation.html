@@ -41,8 +41,8 @@
             <div>
               <h3 style="color: var(--muted-color);">Two types of wasted compute:</h3>
               <ul>
-                <li><span class="paper-badge ies">IES</span> Backpropagating through <strong>already-mastered samples</strong> &mdash; the model keeps training on data it has nothing more to learn from</li>
-                <li><span class="paper-badge grades">GradES</span> Updating <strong>already-converged weight matrices</strong> &mdash; some transformer components finish learning long before others</li>
+                <li><span class="paper-badge ies">IES</span> Backpropagating through <strong>already-mastered samples</strong>: the model keeps training on data it has nothing more to learn from</li>
+                <li><span class="paper-badge grades">GradES</span> Updating <strong>already-converged weight matrices</strong>: some transformer components finish learning long before others</li>
               </ul>
             </div>
           </div>
@@ -61,12 +61,12 @@
       <section id="slide-ies-motivation">
         <h2><span class="paper-badge ies">IES</span> Motivation</h2>
         <div class="content">
-          <p class="citation">Yuan, Lin, Feng, Han, Liu &mdash; "Instance-Dependent Early Stopping" (ICLR 2025)</p>
+          <p class="citation">Yuan, Lin, Feng, Han, Liu: "Instance-Dependent Early Stopping" (ICLR 2025)</p>
           <div style="display: grid; grid-template-columns: 0.85fr 1.15fr; gap: 30px; align-items: start;">
             <div>
               <ul>
                 <li>Instances are learned at <strong>different speeds</strong> during training</li>
-                <li><strong>Dynamic removal</strong> of mastered samples from backpropagation (not dataset pruning &mdash; removal happens during training)</li>
+                <li><strong>Dynamic removal</strong> of mastered samples from backpropagation (not dataset pruning; removal happens during training)</li>
                 <li>Forward pass still computed on all samples; savings come from <strong>skipping backprop</strong></li>
               </ul>
               <div class="result-highlight" style="margin-top: 15px;">
@@ -81,7 +81,7 @@
         </div>
         <aside class="notes">
           This paper is published at ICLR 2025. The key insight is simple: not all training samples need the same number of gradient updates.
-          Look at the figure — as training progresses, more and more samples are identified as mastered and excluded, yet accuracy stays the same or even improves.
+          Look at the figure: as training progresses, more and more samples are identified as mastered and excluded, yet accuracy stays the same or even improves.
           Importantly, this is NOT dataset pruning. Pruning selects a subset before training. IES dynamically removes samples during training as they become mastered.
         </aside>
       </section>
@@ -92,7 +92,7 @@
         <div class="content">
           <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 30px; align-items: start;">
             <div>
-              <p><strong>Problem:</strong> Raw loss is unsuitable &mdash; different samples have different optimal loss values \(L_i(w^*)\)</p>
+              <p><strong>Problem:</strong> Raw loss is unsuitable: different samples have different optimal loss values \(L_i(w^*)\)</p>
               <div class="formula-box">
                 <p style="margin: 0 0 5px 0; font-size: 13pt;" class="text-muted">Second-order loss difference:</p>
                 \[\Delta^2 L_i(w^{(t)}) = L_i(w^{(t)}) - 2L_i(w^{(t-1)}) + L_i(w^{(t-2)})\]
@@ -101,19 +101,17 @@
                 <li><strong>Intuition:</strong> Measures the <em>curvature</em> of the loss trajectory, not its level</li>
                 <li>Flat loss &ne; low loss; what matters is <strong>no more change</strong></li>
                 <li>Lower CV than 0th/1st order &rarr; single threshold \(\delta\) works across all samples</li>
+                <li><strong>Mastered criterion:</strong> \(|\Delta^2 L_i(w^{(t')})| &lt; \delta\) for recent epochs</li>
               </ul>
-              <p style="font-size: 14pt; margin-top: 10px;">
-                <strong>Mastered criterion:</strong> \(|\Delta^2 L_i(w^{(t')})| &lt; \delta\) for recent epochs
-              </p>
             </div>
             <div style="text-align: center;">
               <img src="images/ies-fig3.png" alt="IES Figure 3" style="max-height: 500px; border-radius: var(--box-radius);">
-              <p class="fig-caption">Fig 3: CV of loss differences by order &mdash; 2nd order has lowest CV</p>
+              <p class="fig-caption">Fig 3: CV of loss differences by order; 2nd order has the lowest CV</p>
             </div>
           </div>
         </div>
         <aside class="notes">
-          This is the key math slide — spend time on intuition.
+          This is the key math slide. Spend time on intuition.
           Why not just use the loss value directly? Because different samples have different optimal losses due to noise, complexity, class imbalance.
           A noisy sample might have high loss even when fully learned. The second-order difference captures whether the loss is CHANGING, not its absolute value.
           The CV plot is crucial: it shows that second-order differences have much lower variance across samples, meaning one threshold delta works for all.
@@ -129,7 +127,7 @@
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; align-items: start;">
               <div>
                 <ol class="step-list">
-                  <li><strong>Forward pass</strong> on all samples &mdash; compute \(L_i(w^{(t)})\) for every \(i \in \mathcal{D}\)</li>
+                  <li><strong>Forward pass</strong> on all samples: compute \(L_i(w^{(t)})\) for every \(i \in \mathcal{D}\)</li>
                   <li><strong>Compute</strong> second-order differences \(\Delta^2 L_i\) for each sample</li>
                   <li><strong>Identify mastered:</strong> if \(|\Delta^2 L_i| &lt; \delta\), mark sample as mastered</li>
                   <li><strong>Update training set:</strong> remove mastered samples from backprop batch</li>
@@ -147,9 +145,9 @@
           </div>
           <aside class="notes">
             Walk through the algorithm step by step.
-            Important: the forward pass is still on all samples — we need the loss values to decide who is mastered.
+            Important: the forward pass is still on all samples; we need the loss values to decide who is mastered.
             The savings come from not computing gradients and not doing backprop on mastered samples.
-            This means the speedup is bounded by the ratio of backprop cost to total cost.
+            Savings come from skipping backprop on mastered samples while still running forward pass on all samples.
             Also note: conventional early stopping on validation set is still used as a fallback (line 7).
           </aside>
         </section>
@@ -158,15 +156,15 @@
         <section id="slide-ies-mechanism">
           <h2><span class="paper-badge ies">IES</span> Why Does It Help?</h2>
           <div class="content">
-            <p class="text-lg">Removing mastered instances doesn't just save compute &mdash; it <strong>accelerates optimization</strong>:</p>
+            <p class="text-lg">Removing mastered instances does not only save compute; it <strong>accelerates optimization</strong>:</p>
             <ul>
-              <li><strong>Larger gradient norms</strong> &mdash; remaining batch has more informative gradients</li>
-              <li><strong>Faster loss reduction</strong> &mdash; effective learning rate increases on hard samples</li>
-              <li><strong>Flatter minima</strong> &mdash; lower SAM values and Hessian eigenvalues &rarr; better generalization</li>
+              <li><strong>Larger gradient norms:</strong> remaining batch has more informative gradients</li>
+              <li><strong>Faster loss reduction:</strong> same backprop budget (reported empirically)</li>
+              <li><strong>Flatter minima:</strong> lower SAM values and Hessian eigenvalues &rarr; better generalization</li>
             </ul>
             <div style="text-align: center; margin-top: 15px;">
               <img src="images/ies-fig4.png" alt="IES Figure 4" style="max-height: 500px; border-radius: var(--box-radius);">
-              <p class="fig-caption">Fig 4: Test error, gradient norm, SAM value, and Hessian eigenvalue &mdash; IES (orange) vs baseline (blue)</p>
+              <p class="fig-caption">Fig 4: Test error, gradient norm, SAM value, and Hessian eigenvalue, IES (orange) vs baseline (blue)</p>
             </div>
           </div>
           <aside class="notes">
@@ -246,7 +244,7 @@
         </div>
         <aside class="notes">
           The key story here: IES saves 10-55% of mini-batches with essentially no accuracy loss, sometimes even slight gains.
-          The strongest selling point is probably the transfer learning result — models pretrained with IES are actually better at transferring to new tasks.
+          The strongest selling point is probably the transfer learning result; models pretrained with IES are better at transferring to new tasks.
           This makes sense given the flatter minima finding from the previous slide.
         </aside>
       </section>
@@ -255,14 +253,14 @@
       <section id="slide-grades-motivation">
         <h2><span class="paper-badge grades">GradES</span> Motivation</h2>
         <div class="content">
-          <p class="citation">Wen, Zeng, Zhou, Liu, Hosseinzadeh, Su, Rawassizadeh &mdash; "GradES: Significantly Faster Training in Transformers with Gradient-Based Early Stopping" (2025)</p>
+          <p class="citation">Wen, Zeng, Zhou, Liu, Hosseinzadeh, Su, Rawassizadeh: "GradES: Significantly Faster Training in Transformers with Gradient-Based Early Stopping" (2025)</p>
           <div style="display: grid; grid-template-columns: 0.85fr 1.15fr; gap: 30px; align-items: start;">
             <div>
               <p><strong>Transition:</strong> IES = data-level granularity. GradES = <strong>model-level</strong> granularity.</p>
               <ul>
                 <li>Different weight matrices in transformers <strong>converge at different rates</strong></li>
-                <li>Uses gradient information <strong>already computed</strong> during backprop &mdash; no extra cost</li>
-                <li><strong>No validation overhead</strong> &mdash; classical ES requires frequent validation passes that can paradoxically <em>slow</em> training</li>
+                <li>Uses backprop gradients already available and removes validation passes; adds ~3% monitoring overhead</li>
+                <li><strong>No validation overhead:</strong> classical ES requires frequent validation passes that can paradoxically <em>slow</em> training</li>
               </ul>
               <div class="result-highlight" style="margin-top: 12px;">
                 <p style="margin: 0;"><strong>1.57&ndash;7.22&times; speedup, +1.2% avg accuracy (language), +3.88% (multimodal)</strong></p>
@@ -270,7 +268,7 @@
             </div>
             <div style="text-align: center;">
               <img src="images/grades-fig1.png" alt="GradES Figure 1" style="max-height: 500px; border-radius: var(--box-radius);">
-              <p class="fig-caption">Fig 1: L1 norms of gradient changes per component in Qwen3-0.6B layer 7 &mdash; vastly different convergence rates</p>
+              <p class="fig-caption">Fig 1: L1 norms of gradient changes per component in Qwen3-0.6B layer 7, showing different convergence rates</p>
             </div>
           </div>
         </div>
@@ -294,7 +292,7 @@
               </div>
               <ul style="margin-top: 12px;">
                 <li><strong>Grace period:</strong> Wait \(\alpha T\) steps before monitoring (let training stabilize)</li>
-                <li><strong>Freezing rule:</strong> If \(G_W^{(l)}(t) &lt; \tau\), freeze matrix \(W^{(l)}\) &mdash; skip weight updates</li>
+                <li><strong>Freezing rule:</strong> If \(G_W^{(l)}(t) &lt; \tau\), freeze matrix \(W^{(l)}\), then skip weight updates</li>
                 <li><strong>Key design:</strong> Frozen = no updates, but <strong>still in computation graph</strong> (gradient flow preserved for other layers)</li>
                 <li><strong>Monitored per layer:</strong> \(W_q, W_k, W_v, W_o, W_{up}, W_{down}, W_{gate}\)</li>
                 <li><strong>Termination:</strong> When all matrices frozen &rarr; stop training</li>
@@ -302,15 +300,15 @@
             </div>
             <div style="text-align: center;">
               <img src="images/grades-fig2.png" alt="GradES Figure 2" style="max-height: 480px; border-radius: var(--box-radius);">
-              <p class="fig-caption">Fig 2: GradES architecture &mdash; lock icons show frozen components</p>
+              <p class="fig-caption">Fig 2: GradES architecture, lock icons show frozen components</p>
             </div>
           </div>
         </div>
         <aside class="notes">
           The method is elegant: track how much each weight matrix's gradient changes between steps.
-          If the gradient is barely changing, the matrix has converged — freeze it.
-          Crucially, frozen matrices still participate in forward and backward passes — only the weight update is skipped.
-          This preserves gradient flow to other layers, unlike pruning which would break the computation graph.
+          If the gradient is barely changing, the matrix has converged, so freeze it.
+          Crucially, frozen matrices still participate in forward and backward passes; only the weight update is skipped.
+          Frozen matrices stay in the graph; updates are skipped while gradient flow is preserved.
           The grace period alpha*T prevents premature freezing during the initial unstable phase of training.
         </aside>
       </section>
@@ -431,20 +429,22 @@
                 <td>\(\tau\) per model (manual tuning)</td>
               </tr>
               <tr>
+                <td><strong>Validation dependency</strong></td>
+                <td>Conventional ES fallback uses validation-set checks</td>
+                <td>No validation passes required</td>
+              </tr>
+              <tr>
                 <td><strong>Regularization</strong></td>
                 <td>Flatter minima &rarr; better transfer</td>
                 <td>Prevents component-level overfitting</td>
               </tr>
             </tbody>
           </table>
-          <div class="quote-box">
-            <p style="margin: 0;">"IES asks <em>which data points</em> still deserve gradient updates;<br>GradES asks <em>which model components</em> still deserve gradient updates."</p>
-          </div>
         </div>
         <aside class="notes">
           This is the conceptual center of the talk.
           Both papers share the same philosophical insight: training effort should be directed where learning is still happening.
-          They just apply this insight along different axes — data vs model architecture.
+          They apply this insight along different axes: data vs model architecture.
           Note they're also complementary in model family: IES is demonstrated on CNNs, GradES on transformers.
         </aside>
       </section>
@@ -460,16 +460,16 @@
                 <p style="margin: 0 0 5px 0;"><strong>Strengths</strong></p>
                 <ul>
                   <li>Elegant &amp; model-agnostic (any architecture/optimizer)</li>
-                  <li>Improved transfer learning &mdash; unexpected bonus</li>
+                  <li>Improved transfer learning, an unexpected bonus</li>
                   <li>Theoretically motivated (CV analysis)</li>
                 </ul>
               </div>
               <div class="assessment-card limitation">
                 <p style="margin: 0 0 5px 0;"><strong>Limitations</strong></p>
                 <ul>
-                  <li>No theory for <em>why</em> 2nd-order is optimal</li>
+                  <li>No comprehensive theory proving superiority of 2nd-order criterion</li>
                   <li>Forward pass still required on all samples</li>
-                  <li>Fairness impact not studied</li>
+                  <li>Fairness evaluated only preliminarily (Appendix I); not thoroughly investigated</li>
                 </ul>
               </div>
             </div>
@@ -479,16 +479,17 @@
                 <p style="margin: 0 0 5px 0;"><strong>Strengths</strong></p>
                 <ul>
                   <li>Practical for large transformers (no validation overhead)</li>
-                  <li>LoRA compatible &mdash; compounding efficiency</li>
+                  <li>LoRA compatible, with compounding efficiency</li>
                   <li>Convergence theory provided</li>
                 </ul>
               </div>
               <div class="assessment-card limitation">
                 <p style="margin: 0 0 5px 0;"><strong>Limitations</strong></p>
                 <ul>
-                  <li>Manual \(\tau\) tuning per model (~3% overhead)</li>
-                  <li>Static freezing &mdash; no mechanism to unfreeze</li>
-                  <li>Unclear applicability beyond transformers</li>
+                  <li>Manual \(\tau\) tuning across models/tasks; VLM settings may require component-specific thresholds</li>
+                  <li>~3% computational overhead from gradient monitoring</li>
+                  <li>Static freezing, without patience and without unfreezing</li>
+                  <li>Applicability beyond transformers remains unexplored (CNN/GNN/state-space models)</li>
                 </ul>
               </div>
             </div>
@@ -496,7 +497,7 @@
         </div>
         <aside class="notes">
           Let's be critical about both papers.
-          IES is elegant but the choice of second-order differences is empirically motivated — they show it works better than 0th or 1st order, but don't prove it's optimal.
+          IES is elegant, but the second-order choice is empirical: it outperforms 0th and 1st order in experiments, without an optimality proof.
           The forward pass bottleneck is a real limitation: you still need to evaluate every sample every epoch.
           For GradES, the manual threshold tuning is a practical concern. The static freezing (no unfreeze) could be problematic if a component needs to adapt later in training.
         </aside>
@@ -504,35 +505,34 @@
 
       <!-- ==================== SLIDE 12: Conclusion ==================== -->
       <section id="slide-conclusion">
-        <h2>Conclusion &amp; Discussion</h2>
+        <h2>Conclusion</h2>
         <div class="content">
           <div class="callout-box" style="text-align: center; margin-bottom: 20px;">
             <p style="margin: 0; font-size: 18pt;">Training effort should follow <strong>where learning is still happening</strong></p>
           </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px;">
-            <div>
-              <p style="font-size: 15pt; font-weight: 600; margin-bottom: 8px;">Key Takeaways</p>
-              <ol style="font-size: 14pt;">
-                <li>Global early stopping is too coarse &mdash; it ignores heterogeneity in both data and model components</li>
-                <li>Local stopping criteria (per-sample or per-matrix) save significant compute while maintaining or improving accuracy</li>
-                <li>Future direction: <strong>hybrid stopping</strong> combining data-level and component-level granularity</li>
-              </ol>
+          <p style="font-size: 15pt; font-weight: 600; margin-bottom: 8px;">Key Takeaways</p>
+          <div class="takeaways-grid">
+            <div class="takeaway-card">
+              <p class="takeaway-label">Takeaway 1</p>
+              <p class="takeaway-text">Global early stopping is too coarse for heterogeneous data and model components.</p>
             </div>
-            <div>
-              <p style="font-size: 15pt; font-weight: 600; margin-bottom: 8px;">Discussion Questions</p>
-              <ul style="font-size: 14pt;">
-                <li>Can IES and GradES be combined? (per-sample &times; per-component stopping)</li>
-                <li>Can thresholds \(\delta, \tau\) be learned online instead of set manually?</li>
-                <li>How robust are these methods to label noise or distribution shift?</li>
-                <li>Fairness implications of excluding samples early?</li>
-              </ul>
+            <div class="takeaway-card">
+              <p class="takeaway-label">Takeaway 2</p>
+              <p class="takeaway-text">Local stopping criteria (per-sample or per-matrix) can reduce compute while preserving accuracy.</p>
+            </div>
+            <div class="takeaway-card">
+              <p class="takeaway-label">Takeaway 3</p>
+              <p class="takeaway-text">IES reports noisy-label robustness (Appendix G) and improved transferability.</p>
+            </div>
+            <div class="takeaway-card">
+              <p class="takeaway-label">Takeaway 4</p>
+              <p class="takeaway-text">GradES reports strong speedups and clear future work on threshold automation and dynamic freezing.</p>
             </div>
           </div>
         </div>
         <aside class="notes">
           To wrap up: both papers share a common insight that training resources should be directed where they're most needed.
-          The natural next step is combining both approaches — stop training on mastered samples AND stop updating converged components.
-          Open questions around threshold learning, robustness, and fairness provide plenty of research directions.
+          Keep the close focused on the four takeaways above and avoid opening new discussion threads on this final slide.
         </aside>
       </section>
 
