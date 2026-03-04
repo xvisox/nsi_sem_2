@@ -306,6 +306,79 @@
 }
 
 /* ===========================================
+   GLOBAL ES SLIDE
+   =========================================== */
+
+.global-es-question {
+  text-align: center;
+  padding: 16px 24px;
+}
+
+.global-es-kicker {
+  margin: 0 0 6px 0;
+  font-size: 15pt !important;
+  color: var(--muted-color) !important;
+  font-weight: 600;
+}
+
+.global-es-quote {
+  margin: 0;
+  font-size: 21pt !important;
+  line-height: 1.35;
+}
+
+.global-es-flow {
+  margin: 6px 0 0 0;
+  font-size: 13pt !important;
+  color: var(--muted-color) !important;
+}
+
+.global-es-subtitle {
+  margin: 2px 0 0 0;
+  font-size: 16pt !important;
+  font-weight: 600;
+  color: var(--muted-color) !important;
+}
+
+.global-es-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+.global-es-card {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: var(--box-radius);
+  padding: 14px 16px;
+}
+
+.global-es-card.ies {
+  border-left: 4px solid var(--ies-color);
+}
+
+.global-es-card.grades {
+  border-left: 4px solid var(--grades-color);
+}
+
+.global-es-card-title {
+  margin: 0 0 6px 0;
+  font-size: 15pt !important;
+  font-weight: 700;
+}
+
+.global-es-card-text {
+  margin: 0;
+  font-size: 16pt !important;
+  line-height: 1.35;
+}
+
+.global-es-bottom {
+  margin-top: 6px;
+  text-align: center;
+}
+
+/* ===========================================
    TAKEAWAYS GRID (final slide)
    =========================================== */
 
@@ -417,16 +490,20 @@
   margin: 12px 0;
   border-radius: var(--box-radius);
   font-size: 14pt;
+  display: flex;
+  flex-direction: column;
 }
 
 .assessment-card.strength {
   background: #f0fdf4;
   border-left: 4px solid #22c55e;
+  min-height: 186px;
 }
 
 .assessment-card.limitation {
   background: #fef2f2;
   border-left: 4px solid #ef4444;
+  min-height: 286px;
 }
 
 .assessment-card ul {
@@ -518,6 +595,10 @@
   font-size: 13pt;
 }
 
+.step-list.grades li::before {
+  background: var(--grades-color);
+}
+
 /* ===========================================
    TITLE UNDERLINE (enabled for content slides)
    =========================================== */
@@ -527,4 +608,13 @@
   margin: 0;
   padding-bottom: 12px;
   border-bottom: 2px solid var(--line-color);
+}
+
+/* ===========================================
+   GRADES METHOD COMPACT TUNING
+   =========================================== */
+
+#slide-grades-method li {
+  font-size: 18pt;
+  line-height: 1.4;
 }

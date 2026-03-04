@@ -19,12 +19,15 @@
       <!-- ==================== SLIDE 1: Title ==================== -->
       <section id="title" class="section-divider" data-state="is-section-divider">
         <h1>Fine-Grained Early Stopping<br>in Deep Learning</h1>
-        <p class="text-muted" style="font-size: 16pt; margin-top: 30px;">Hubert Michalski &bull; ML Seminar &bull; March 2026</p>
+        <p class="text-muted" style="font-size: 16pt; margin-top: 30px;">Hubert Michalski &bull; NSI Seminar &bull; March 2026</p>
         <aside class="notes">
-          Welcome. Today we look at two recent papers that challenge the coarseness of traditional early stopping.
-          Both ask: can we make finer-grained stopping decisions during training?
-          We'll cover the problem framing, then dive into each paper, and finish with a comparison and critique.
-          ~30 minutes total, with time for discussion at the end.
+          [~1 min]
+
+          Welcome. Today's talk is about a simple but surprisingly powerful idea: what if we stopped training not when the whole model has converged, but when each individual part of it has converged?
+
+          We'll look at two recent papers that both ask this question, but from completely different angles. The first, IES — Instance-dependent Early Stopping — was published at ICLR 2025 by a group from Sydney, Southeast University, and Hong Kong. It asks: can we stop training on each individual training sample once the model has learned it? The second, GradES — Gradient-based Early Stopping — is a 2025 preprint from Boston University. It asks: can we stop updating each weight matrix in a transformer once that particular matrix has converged?
+
+          Both papers share the same core motivation: global early stopping is blunt. It makes a single binary decision for the whole model at once. Let's start by unpacking why that's a problem.
         </aside>
       </section>
 
@@ -32,28 +35,39 @@
       <section id="slide-global-es">
         <h2>Why Global Early Stopping Is Too Coarse</h2>
         <div class="content">
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 40px;">
-            <div>
-              <h3 style="color: var(--muted-color);">Classical ES answers <em>one</em> question:</h3>
-              <p class="text-xl">"Has the <strong>entire model</strong> stopped improving on the <strong>entire validation set</strong>?"</p>
-              <p class="text-muted" style="font-size: 13pt;">One signal &rarr; one decision &rarr; all parameters, all data</p>
+          <div class="global-es-question callout-box">
+            <p class="global-es-kicker">Classical ES answers one global question:</p>
+            <p class="global-es-quote">"Has the entire model stopped improving on the entire validation set?"</p>
+          </div>
+
+          <p class="global-es-subtitle">Two types of wasted compute</p>
+          <div class="global-es-grid">
+            <div class="global-es-card ies">
+              <p class="global-es-card-title"><span class="paper-badge ies">IES</span>Data-level waste</p>
+              <p class="global-es-card-text">Backpropagating through already-mastered samples: the model keeps training on data it has nothing more to learn from.</p>
             </div>
-            <div>
-              <h3 style="color: var(--muted-color);">Two types of wasted compute:</h3>
-              <ul>
-                <li><span class="paper-badge ies">IES</span> Backpropagating through <strong>already-mastered samples</strong>: the model keeps training on data it has nothing more to learn from</li>
-                <li><span class="paper-badge grades">GradES</span> Updating <strong>already-converged weight matrices</strong>: some transformer components finish learning long before others</li>
-              </ul>
+            <div class="global-es-card grades">
+              <p class="global-es-card-title"><span class="paper-badge grades">GradES</span>Model-level waste</p>
+              <p class="global-es-card-text">Updating already-converged weight matrices: some transformer components finish learning long before others.</p>
             </div>
           </div>
-          <div class="callout-box" style="margin-top: 25px; text-align: center;">
-            <p style="margin: 0;">Both papers replace <strong>one global stop signal</strong> with <strong>many local stop decisions</strong></p>
+
+          <div class="callout-box global-es-bottom">
+            <p style="margin: 0;">Both papers replace one global stop signal with many local stop decisions.</p>
           </div>
         </div>
         <aside class="notes">
-          Classical early stopping is a blunt instrument. It monitors one metric (validation loss) and makes one binary decision for the entire model.
-          These two papers identify two distinct sources of wasted computation that global ES misses.
-          IES focuses on the data dimension, GradES on the model dimension.
+          [~2.5 min]
+
+          Classical early stopping answers one global question: has the whole model stopped improving on the whole validation set? If yes, stop everything.
+
+          This is conceptually elegant, but it completely ignores heterogeneity — both in the data and in the model itself.
+
+          On the data side: think about what happens with a dataset like CIFAR-10. Some samples are clean, canonical examples — a clearly photographed cat on a white background. The model learns those in the first few epochs and never needs to see them again. But it keeps running them through backpropagation until the very end of training. That's IES's target inefficiency.
+
+          On the model side: think about a transformer fine-tuned for a language task. The key and value projection matrices tend to stabilize early — the model quickly learns what aspects of each token to attend to. But the FFN up-projection matrices keep changing for much longer. Yet classical ES makes the same stop decision for all of them. That's GradES's target inefficiency.
+
+          So both papers replace a single global stop signal with many local stop decisions. The key design challenge is: what signal do you use to know when something is "done"? Both papers give very different answers, and we'll look at each in turn.
         </aside>
       </section>
 
@@ -80,9 +94,17 @@
           </div>
         </div>
         <aside class="notes">
-          This paper is published at ICLR 2025. The key insight is simple: not all training samples need the same number of gradient updates.
-          Look at the figure: as training progresses, more and more samples are identified as mastered and excluded, yet accuracy stays the same or even improves.
-          Importantly, this is NOT dataset pruning. Pruning selects a subset before training. IES dynamically removes samples during training as they become mastered.
+          [~3 min]
+
+          The IES paper was published at ICLR 2025 by Yuan et al. from the University of Sydney. The core observation is that different instances are learned at different rates during training. This is not new — it's been known since Arpit et al. (2017) showed that networks learn simple patterns first — but IES is the first paper to operationalize it as a per-sample early stopping mechanism.
+
+          Look at Figure 1 on the right. Both plots show the training curve on ImageNet-1k and CIFAR-10. The top row shows test accuracy: IES (orange) tracks the baseline almost identically. Now look at the bottom row: the number of samples excluded from backpropagation grows continuously over training. By the end, over 30% of samples on ImageNet are excluded every epoch. Yet accuracy is preserved.
+
+          Two important distinctions to make before diving in. First, this is NOT dataset pruning. Pruning selects a fixed subset before training begins. IES is dynamic — it decides each epoch which samples to skip. And crucially, it's reversible: a sample that was excluded can come back into training if its second-order loss difference rises above the threshold again. On average, the paper reports that "early removed" samples get re-included about 13 times over 200 epochs.
+
+          Second, the savings only come from skipping backpropagation. The forward pass still runs on all samples every epoch. This is necessary because we need the current loss to compute the mastered criterion. We'll see this matters for wall-time speedup.
+
+          The headline numbers: 10–55% reduction in mini-batches that require backpropagation, and 1.2–1.4× wall-time speedup. The mismatch between those two numbers — why 55% fewer backprops doesn't give 55% speedup — is exactly because the forward pass is the bottleneck. We'll come back to that.
         </aside>
       </section>
 
@@ -111,10 +133,21 @@
           </div>
         </div>
         <aside class="notes">
-          This is the key math slide. Spend time on intuition.
-          Why not just use the loss value directly? Because different samples have different optimal losses due to noise, complexity, class imbalance.
-          A noisy sample might have high loss even when fully learned. The second-order difference captures whether the loss is CHANGING, not its absolute value.
-          The CV plot is crucial: it shows that second-order differences have much lower variance across samples, meaning one threshold delta works for all.
+          [~4 min]
+
+          This is the key design decision in the paper: how do you know when a sample is "mastered"? The naive answer is: look at the loss. If the loss is small, the model has learned it. But this doesn't work.
+
+          Why? Because different samples have genuinely different optimal losses. A clean, canonical image will have a very low loss once learned. But an ambiguous, noisy, or mislabeled sample might always have high loss — even when the model has extracted everything useful from it. If you set a single loss threshold, you'd either never stop on hard samples, or incorrectly stop on easy-but-noisy ones.
+
+          What the authors propose instead is to look at the second-order difference: how much is the loss changing? More precisely: is the rate of change of the loss itself changing? If the loss has flattened out — if the second derivative with respect to time is near zero — then regardless of what the absolute loss value is, the sample isn't contributing useful gradients anymore.
+
+          The formula is: delta-squared L_i = L_i(t) - 2*L_i(t-1) + L_i(t-2). This is just the discrete second derivative of the per-sample loss trajectory over consecutive epochs.
+
+          Now look at Figure 3. It shows the Coefficient of Variation — standard deviation over mean — for the zero-order (raw loss), first-order, and second-order differences, plotted across training. The CV tells you how much variability there is across samples. A high CV means different samples have wildly different values, so no single threshold can work for all of them.
+
+          The zero-order CV stays high throughout training — confirming that raw loss values vary enormously across samples. The second-order differences converge to a much lower CV as training progresses, meaning that across all samples, once they're mastered, their second-order differences cluster around the same small value near zero. This is what justifies using a single threshold delta for all samples.
+
+          The paper also shows this threshold is robust: varying delta across four orders of magnitude keeps test accuracy within about 2% of the baseline. So practitioners don't need to tune it carefully.
         </aside>
       </section>
 
@@ -144,11 +177,17 @@
             </div>
           </div>
           <aside class="notes">
-            Walk through the algorithm step by step.
-            Important: the forward pass is still on all samples; we need the loss values to decide who is mastered.
-            The savings come from not computing gradients and not doing backprop on mastered samples.
-            Savings come from skipping backprop on mastered samples while still running forward pass on all samples.
-            Also note: conventional early stopping on validation set is still used as a fallback (line 7).
+            [~3 min]
+
+            The algorithm has a clean two-phase structure. Every epoch, you first run a full forward pass on all samples — you need this to compute the current loss values for the second-order criterion. Then you identify the mastered set: all samples where the absolute value of delta-squared L_i has stayed below threshold delta for the past k epochs. Finally, you run backpropagation only on the non-mastered samples.
+
+            Three things worth emphasizing. First, as I mentioned, the forward pass runs on everything. The savings are exclusively from skipping backpropagation. Since backprop is roughly twice the compute of a forward pass, this still gives meaningful speedups, but it caps the theoretical maximum savings.
+
+            Second, the method is reversible. Line 5 in the algorithm recomputes the mastered set every epoch from scratch — a sample that was excluded can come back if its delta-squared L rises above the threshold. The authors tracked this: on average, a sample that was "early removed" gets re-included about 13 times during training, with some samples re-included as many as 26 times. This is why IES does not cause catastrophic forgetting — the model still sees those samples periodically.
+
+            Third, line 7 is important: conventional early stopping on the validation set remains as a fallback. If the entire dataset becomes mastered, or if validation performance degrades, training stops. So IES is not replacing classical early stopping — it's layered on top of it.
+
+            One practical note: the criterion is applied over k=1 recent epoch in the paper's implementation. So it checks whether the last computed second-order difference is below delta, not an average over many epochs. This makes it computationally cheap — you just need to store the last two loss values per sample.
           </aside>
         </section>
 
@@ -168,9 +207,15 @@
             </div>
           </div>
           <aside class="notes">
-            This is the mechanistic explanation for why IES doesn't just match the baseline but can actually exceed it.
-            By focusing backpropagation on not-yet-mastered samples, the gradient signal is more informative.
-            The SAM and Hessian plots show IES finds flatter minima, which explains the transfer learning improvements.
+            [~2.5 min]
+
+            This slide explains why IES doesn't just match the baseline — it can beat it. When you remove mastered samples from backpropagation, the remaining batch is more informationally dense. The mastered samples have near-zero gradients, so they contribute almost nothing to parameter updates. Dropping them concentrates the gradient signal on the samples where learning is still happening.
+
+            The paper measures three effects. First, gradient norm: the average mini-batch gradient norm is consistently higher for IES. This means each parameter update is more effective — you make bigger, more meaningful steps per backprop step. The paper shows this holds for both SGD and Adam.
+
+            Second, sharpness: two proxies are used — the SAM value (Sharpness-Aware Minimization loss) and the maximum eigenvalue of the Hessian. Both are consistently lower for IES throughout training. A lower maximum Hessian eigenvalue means the loss landscape is flatter around the solution. Flat minima generalize better — this is well established in the literature.
+
+            Third, and this is the most practically interesting finding: models pretrained with IES transfer better. When you fine-tune only the classification head on downstream tasks after ImageNet-1k pretraining, IES-pretrained ResNet-101 beats the baseline by +0.9% on CIFAR-10, +1.9% on CIFAR-100, and +2.5% on Caltech-101. The mechanism the paper proposes is that the flatter minima found by IES are inherently more transferable — they represent more general features rather than dataset-specific overfit patterns. This wasn't a design goal of IES; it emerged as an unexpected bonus.
           </aside>
         </section>
       </section>
@@ -243,9 +288,17 @@
           </div>
         </div>
         <aside class="notes">
-          The key story here: IES saves 10-55% of mini-batches with essentially no accuracy loss, sometimes even slight gains.
-          The strongest selling point is probably the transfer learning result; models pretrained with IES are better at transferring to new tasks.
-          This makes sense given the flatter minima finding from the previous slide.
+          [~2.5 min]
+
+          Looking at the results table. The headline claim holds across all architectures and datasets: mini-batch savings are in the 28–55% range on CIFAR-10 and 28–34% on CIFAR-100, with accuracy changes that are within noise — the differences are within the standard deviation of 5 runs.
+
+          The wall-time speedup numbers tell an important story. Even though 54% of backpropagations are skipped on CIFAR-10/ResNet-18, the wall-time speedup is only 1.4×, not 2×. Why? Because the forward pass on all samples still runs. On CIFAR-100, savings are lower (28–34%) and speedup is only 1.2×. This is the fundamental overhead tax of the forward pass, and it's a real limitation.
+
+          The one result on the table that stands out: ResNet-101 on CIFAR-100 actually achieves slightly better accuracy than the baseline (72.2% vs 71.9%). This is consistent with the flatter minima hypothesis.
+
+          The transfer learning box at the bottom is the paper's strongest result. ImageNet-pretrained ResNet-101 with IES then fine-tuned on CIFAR-10: 81.2% vs 80.3% baseline. On CIFAR-100: 57.5% vs 55.6%. On Caltech-101: 59.9% vs 57.4%. These are consistent, non-trivial improvements from a single pretraining change with no extra cost.
+
+          One comparison worth knowing if asked: the paper benchmarks IES against curriculum learning (DIHCL), importance sampling, and random removal at 2× speedup. At that speedup target, IES achieves 93.7% on CIFAR-10 vs 90.4% for classical early stopping, 93.4% for DIHCL, and 91.5% for EfficientTrain. IES is competitive or better.
         </aside>
       </section>
 
@@ -273,15 +326,22 @@
           </div>
         </div>
         <aside class="notes">
-          Now we shift from the data dimension to the model dimension.
-          GradES observes that different weight matrices in a transformer converge at very different rates.
-          Look at the figure: some components' gradients become tiny early on, while others keep changing.
-          A key practical advantage: classical ES actually SLOWS training on large models because validation passes are expensive. GradES avoids this entirely.
+          [~3 min]
+
+          We've now covered data-level granularity with IES. Let's shift to model-level granularity with GradES, a 2025 preprint from Boston University. The problem statement is different: instead of asking which samples to skip, we ask which weight matrices to stop updating.
+
+          The key observation motivating this is shown in Figure 1. Look at the L1 norm of gradient changes for seven matrices in layer 7 of Qwen3-0.6B — attention projections (Wq, Wk, Wv, Wo) and MLP components (Wgate, Wup, Wdown). Each curve shows how much that matrix's gradient is changing between consecutive training steps. The red dotted line is the convergence threshold tau.
+
+          Notice two things. First, MLP projections have 2–3× higher gradient magnitudes than attention projections throughout training. Second, some matrices (especially attention) cross below the threshold early, while the MLP up-projection and down-projection matrices stay active much longer. So the standard "all matrices stop together" decision is leaving computation on the table.
+
+          There's also a practical angle that IES doesn't have: classical early stopping is especially expensive for large language models. Every validation check requires running a full forward pass through all transformer layers for every sample in the validation set. This scales linearly with model size. The paper documents this overhead in Table 4 — classical ES actually slows down training by 0.59–0.76× compared to no early stopping at all on these large models. GradES sidesteps this entirely: it monitors gradients that are already computed during backpropagation, adding only about 3% overhead.
+
+          So GradES has two wins: it skips weight updates on converged matrices, and it eliminates expensive validation passes.
         </aside>
       </section>
 
       <!-- ==================== SLIDE 8: GradES Method ==================== -->
-      <section id="slide-grades-method">
+      <section id="slide-grades-method" class="grades-method-slide">
         <h2><span class="paper-badge grades">GradES</span> Method</h2>
         <div class="content">
           <div style="display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 30px; align-items: start;">
@@ -295,7 +355,7 @@
                 <li><strong>Freezing rule:</strong> If \(G_W^{(l)}(t) &lt; \tau\), freeze matrix \(W^{(l)}\), then skip weight updates</li>
                 <li><strong>Key design:</strong> Frozen = no updates, but <strong>still in computation graph</strong> (gradient flow preserved for other layers)</li>
                 <li><strong>Monitored per layer:</strong> \(W_q, W_k, W_v, W_o, W_{up}, W_{down}, W_{gate}\)</li>
-                <li><strong>Termination:</strong> When all matrices frozen &rarr; stop training</li>
+                <li><strong>Termination:</strong> When all matrices are frozen, stop training</li>
               </ul>
             </div>
             <div style="text-align: center;">
@@ -305,15 +365,65 @@
           </div>
         </div>
         <aside class="notes">
-          The method is elegant: track how much each weight matrix's gradient changes between steps.
-          If the gradient is barely changing, the matrix has converged, so freeze it.
-          Crucially, frozen matrices still participate in forward and backward passes; only the weight update is skipped.
-          Frozen matrices stay in the graph; updates are skipped while gradient flow is preserved.
-          The grace period alpha*T prevents premature freezing during the initial unstable phase of training.
+          [~3.5 min]
+
+          The convergence signal used by GradES is the element-wise L1 norm of the gradient change between consecutive training steps: G_W(t) = sum over all elements of |grad_W_t minus grad_W_{t-1}|. This captures how much a matrix's gradient is shifting from step to step. If the gradient is barely moving, the matrix has converged — it's found a stable configuration for the current task.
+
+          The choice of L1 over L2 is deliberate: it's more sensitive to many small changes spread across elements, and it's cheaper to compute.
+
+          There are three key design choices in GradES:
+
+          First, the grace period. The first alpha × T training steps — where alpha is set to 0.5, so literally the first half of training — no monitoring happens. This is important because in the early phase, gradients are chaotic and don't reflect true convergence. A matrix might appear to have small gradient changes just because it's not yet specialized. The grace period lets all matrices do their initial adaptation before you start freezing any of them.
+
+          Second, the freezing rule. Once we're past the grace period, we compute G_W(t) for every active matrix every step. If it falls below tau, that matrix gets added to the frozen set. This is irreversible — there's no unfreezing mechanism.
+
+          Third, and this is the most subtle design point: frozen matrices stay in the computation graph. They still participate in the forward pass and backpropagation. Their gradients are computed. But the weight update step is skipped. Why does this matter? If you fully removed frozen matrices from the backward graph, the layers below them would receive incorrect gradient signals. Downstream active matrices need proper gradients flowing through the frozen ones.
+
+          Training terminates when all matrices are frozen, which the paper describes as a natural "all components converged" stopping criterion.
+
+          The threshold tau is a hyperparameter that needs to be set per model. The paper provides values used for each model in the appendix — this is a limitation we'll return to.
         </aside>
       </section>
 
-      <!-- ==================== SLIDE 9: GradES Results ==================== -->
+      <!-- ==================== SLIDE 9: GradES Algorithm ==================== -->
+      <section id="slide-grades-algorithm">
+        <h2><span class="paper-badge grades">GradES</span> Algorithm</h2>
+        <div class="content">
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 18px; align-items: start;">
+            <div>
+              <ol class="step-list grades">
+                <li><strong>Initialize</strong> frozen set \(F \leftarrow \varnothing\) and previous gradients \(\nabla W_{t-1}\)</li>
+                <li><strong>Set grace period:</strong> \(t_{\text{grace}} = \lceil \alpha T \rceil\)</li>
+                <li><strong>Each step:</strong> sample batch \(B\), compute loss and gradients</li>
+                <li><strong>After grace period:</strong> for each active matrix \(W \notin F\), compute \(G_W(t)=\|\nabla W_t - \nabla W_{t-1}\|_1\)</li>
+                <li><strong>Freeze rule:</strong> if \(G_W(t) &lt; \tau\), add \(W\) to \(F\)</li>
+                <li><strong>Update only active matrices:</strong> skip updates for frozen \(W \in F\)</li>
+                <li><strong>Keep gradient flow:</strong> frozen matrices stay in forward/backward graph</li>
+                <li><strong>Stop early</strong> when all matrices are frozen</li>
+              </ol>
+            </div>
+            <div>
+              <div style="text-align: center;">
+                <img src="images/grades-algo1.png" alt="GradES Algorithm 1 from paper" style="max-height: 520px; width: 100%; object-fit: contain; border-radius: var(--box-radius);">
+                <p class="fig-caption">Algorithm 1 from GradES paper (p2, page 5)</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <aside class="notes">
+          [~2 min]
+
+          Algorithm 1 from the paper formalizes what I just described. The key loop structure:
+
+          Initialize with all matrices active, frozen set F empty. Set the grace period cutoff at alpha × T steps (alpha = 0.5). For each training step: sample a batch, compute loss and gradients as normal. After the grace period: for every active matrix not yet in F, compute the L1 gradient change magnitude. If it's below tau, add it to F. Then update only the active matrices — skip the update for frozen ones, but keep them in the backward graph. When F contains all matrices, stop training.
+
+          The computational overhead is small. The paper reports about 3% overhead from the monitoring, which is negligible given the 1.5–7× speedup gains.
+
+          One nuance: in the LoRA variant, the monitoring happens in the low-rank subspace — you track gradient magnitudes of the A and B matrices rather than the full weight matrices. The threshold tau is adjusted accordingly. This lets GradES compose cleanly with LoRA's parameter efficiency.
+        </aside>
+      </section>
+
+      <!-- ==================== SLIDE 10: GradES Results ==================== -->
       <section id="slide-grades-results">
         <h2><span class="paper-badge grades">GradES</span> Results</h2>
         <div class="content">
@@ -383,10 +493,17 @@
           </div>
         </div>
         <aside class="notes">
-          Notice the red numbers: classical early stopping actually makes training SLOWER on these models because the validation passes are expensive.
-          GradES avoids validation entirely and achieves consistent speedups.
-          The LoRA result is particularly impressive: 7.22x speedup on Qwen3-0.6B by combining LoRA's parameter efficiency with GradES's component-level stopping.
-          Accuracy is maintained or even slightly improved in most cases.
+          [~2.5 min]
+
+          The results table tells a striking story. Look at the red number in the third row: FP + ES on Qwen3-0.6B takes 8,569 seconds vs 6,550 seconds for standard full-parameter training. That's a 0.76× slowdown — classical early stopping makes training 24% slower on this model. This is because every validation check requires a full forward pass through all 28 layers of Qwen3 on every validation sample. At the frequency needed to not miss the optimal stopping point, this overhead dominates.
+
+          GradES, by contrast, achieves 4,018 seconds — a genuine 1.63× speedup — while accuracy actually improves slightly (66.99% vs 66.53%). The pattern holds across LLaMA-3.1-8B (1.64×) and Qwen3-14B (1.51×).
+
+          The most dramatic result is the LoRA combination. When you stack LoRA's parameter efficiency with GradES's component-level stopping, Qwen3-0.6B trains in 907 seconds vs 6,550 for the full-parameter baseline — a 7.22× speedup. The mechanism is compounding: LoRA reduces the parameter count dramatically, and GradES then further reduces which of those parameters get updated at each step.
+
+          For the accuracy story: across the full benchmark suite of 8 commonsense reasoning tasks — BoolQ, PIQA, SIQA, HellaSwag, WinoGrande, OpenBookQA, ARC-E, ARC-C — GradES averages +1.2% over classical early stopping for language models. For vision-language tasks, the improvement is larger: nanoVLM trained with GradES achieves +3.88% average accuracy, with particularly large gains on logical reasoning (+8.35%) and fine-grained perception (+7.42%).
+
+          The accuracy improvements likely stem from GradES's implicit regularization effect: fast-converging components are frozen early, preventing overfitting, while slow-converging components continue to specialize.
         </aside>
       </section>
 
@@ -442,10 +559,15 @@
           </table>
         </div>
         <aside class="notes">
-          This is the conceptual center of the talk.
-          Both papers share the same philosophical insight: training effort should be directed where learning is still happening.
-          They apply this insight along different axes: data vs model architecture.
-          Note they're also complementary in model family: IES is demonstrated on CNNs, GradES on transformers.
+          [~2 min]
+
+          Putting both papers side by side, the structural similarities are striking. Both identify a convergence signal specific to their domain. IES uses the second-order loss difference — a curvature measure over time — while GradES uses the L1 gradient change magnitude. Both set a single threshold to make binary decisions. Both preserve the full forward pass for monitoring purposes. Both show that their local stopping decisions improve accuracy slightly rather than hurting it.
+
+          The differences are as important as the similarities. IES is fully model-agnostic: it works on any architecture with any optimizer, because it only touches the loss values and which samples enter backpropagation. GradES is transformer-specific: it exploits the matrix structure of attention and FFN layers.
+
+          The validation dependency row is worth pausing on. IES still relies on classical validation-based early stopping as a fallback — it adds instance-level stopping on top of the global mechanism. GradES entirely eliminates validation passes, which is what makes it especially attractive for large models where validation is expensive.
+
+          These two approaches are actually complementary. Nothing stops you from applying IES and GradES simultaneously — skip backprop on mastered samples, and among the remaining backprops, skip weight updates on converged matrices. That combination hasn't been studied yet, but it's a natural extension.
         </aside>
       </section>
 
@@ -496,10 +618,21 @@
           </div>
         </div>
         <aside class="notes">
-          Let's be critical about both papers.
-          IES is elegant, but the second-order choice is empirical: it outperforms 0th and 1st order in experiments, without an optimality proof.
-          The forward pass bottleneck is a real limitation: you still need to evaluate every sample every epoch.
-          For GradES, the manual threshold tuning is a practical concern. The static freezing (no unfreeze) could be problematic if a component needs to adapt later in training.
+          [~2 min]
+
+          Let's be honest about where both papers fall short.
+
+          For IES: the choice of second-order differences over first-order or raw loss is justified empirically through the CV comparison, but there's no theoretical proof that second-order is optimal. The paper shows it works better in experiments; it doesn't prove why it must be better. That's fine for a practical method, but it leaves open the question of whether something even better exists.
+
+          The forward pass bottleneck is a hard constraint. Even if you skip backprop on 80% of samples, you still run forward passes on 100% of them. On datasets where the forward pass dominates — like large vision transformers or VLMs — IES's savings would be much smaller than on CNNs. The paper only evaluates on CNNs, so the question of whether IES is effective on transformers is unanswered.
+
+          The fairness evaluation is also worth flagging. The paper tests on CelebA with gender as the sensitive attribute. IES doesn't make things significantly worse, but the DPD metric shows some slight increase in disparity. The paper is transparent about this being preliminary and not thoroughly investigated — Appendix I notes they only test one dataset and one attribute.
+
+          For GradES: the threshold tau has to be set manually for each model and task combination. The paper provides values for the models they test, but there's no principled way to choose tau without some experimentation. This is a practical barrier to adoption.
+
+          Static freezing is a design choice that could backfire. Once a matrix is frozen, it never unfreezes. If the task requires a component to re-adapt — for example in curriculum learning scenarios, or when training on heterogeneous batches — frozen components can't respond. Methods like AFLoRA use more sophisticated convergence scores precisely to address this; GradES trades that flexibility for simplicity.
+
+          Finally, GradES is transformer-specific. Whether the same gradient-change monitoring idea applies to CNNs, graph neural networks, or state-space models like Mamba is an open question.
         </aside>
       </section>
 
@@ -531,8 +664,15 @@
           </div>
         </div>
         <aside class="notes">
-          To wrap up: both papers share a common insight that training resources should be directed where they're most needed.
-          Keep the close focused on the four takeaways above and avoid opening new discussion threads on this final slide.
+          [~1.5 min]
+
+          To wrap up: the common thread across both papers is that learning is heterogeneous — some data is learned faster, some model components converge faster — and that uniform training ignores this. Both papers show you can exploit this heterogeneity to save compute without sacrificing quality.
+
+          Four things to take away. One: global early stopping is a blunt instrument that misses two orthogonal sources of waste. Two: local stopping criteria — whether per-sample or per-matrix — can eliminate that waste with minimal engineering. Three: IES is model-agnostic, shows up on CNNs, and comes with the bonus of better transfer learning through flatter minima. Four: GradES is practical for large transformers because it eliminates the validation overhead that actually makes classical ES counterproductive at scale.
+
+          The natural next question — which I'll leave open for discussion — is whether you can combine these ideas. Apply IES to skip uninformative samples, and apply GradES to stop updating converged matrices, simultaneously. Neither paper explores this, but the two mechanisms operate on independent dimensions and are clearly composable in principle.
+
+          I'm happy to take questions.
         </aside>
       </section>
 
